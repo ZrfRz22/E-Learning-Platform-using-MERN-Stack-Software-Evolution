@@ -41,17 +41,20 @@ const AddStudent = ({ situation }) => {
     }, [adminID, dispatch]);
 
     const changeHandler = (event) => {
-        if (event.target.value === 'Select Class') {
-            setClassName('Select Class');
-            setSclassName('');
+        const selectedValue = event.target.value; 
+
+        const selectedClass = sclassesList.find(
+            (classItem) => classItem._id === selectedValue
+        );
+
+        if (selectedClass) {
+            setClassName(selectedClass.sclassName); 
+            setSclassName(selectedClass._id);     
         } else {
-            const selectedClass = sclassesList.find(
-                (classItem) => classItem.sclassName === event.target.value
-            );
-            setClassName(selectedClass.sclassName);
-            setSclassName(selectedClass._id);
+            setClassName('');
+            setSclassName('');
         }
-    }
+    };
 
     const fields = { name, rollNum, password, sclassName, adminID, role, attendance }
 
