@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
-import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
-//import { deleteUser } from '../../../redux/userRelated/userHandle';
+import { deleteSubject, deleteSubjects, getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import {
     Paper, Box, IconButton,
@@ -30,17 +29,21 @@ const ShowSubjects = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
 
-    const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        setMessage("Sorry the delete function has been disabled for now.")
-        setShowPopup(true)
+const deleteHandler = (deleteID, type = "Subject") => {
+    const deleteAction = type === "Subjects" 
+        ? deleteSubjects 
+        : deleteSubject;
 
-        // dispatch(deleteUser(deleteID, address))
-        //     .then(() => {
-        //         dispatch(getSubjectList(currentUser._id, "AllSubjects"));
-        //     })
-    }
+    dispatch(deleteAction(deleteID))
+        .then(() => {
+            dispatch(getSubjectList(currentUser._id, "AllSubjects"));
+        })
+        .catch((err) => {
+            console.error("Delete failed:", err);
+            setMessage("Failed to delete subject(s). Please try again.");
+            setShowPopup(true);
+        });
+};
 
     const subjectColumns = [
         { id: 'subName', label: 'Sub Name', minWidth: 170 },

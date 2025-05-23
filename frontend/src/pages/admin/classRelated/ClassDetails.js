@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom'
-import { getClassDetails, getClassStudents, getSubjectList } from "../../../redux/sclassRelated/sclassHandle";
-import { deleteUser } from '../../../redux/userRelated/userHandle';
+import { getClassDetails, getClassStudents, deleteSubject, deleteSubjects, getSubjectList } from "../../../redux/sclassRelated/sclassHandle";
 import {
     Box, Container, Typography, Tab, IconButton
 } from '@mui/material';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
-import { resetSubjects } from "../../../redux/sclassRelated/sclassSlice";
 import { BlueButton, GreenButton, PurpleButton } from "../../../components/buttonStyles";
 import TableTemplate from "../../../components/TableTemplate";
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -24,6 +22,7 @@ const ClassDetails = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch();
     const { subjectsList, sclassStudents, sclassDetails, loading, error, response, getresponse } = useSelector((state) => state.sclass);
+    const { currentUser } = useSelector((state) => state.user);
 
     const classID = params.id
 
@@ -46,18 +45,21 @@ const ClassDetails = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
 
-    const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        setMessage("Sorry the delete function has been disabled for now.")
-        setShowPopup(true)
-        // dispatch(deleteUser(deleteID, address))
-        //     .then(() => {
-        //         dispatch(getClassStudents(classID));
-        //         dispatch(resetSubjects())
-        //         dispatch(getSubjectList(classID, "ClassSubjects"))
-        //     })
-    }
+    const deleteHandler = (deleteID, type = "Subject") => {
+        const deleteAction = type === "Subjects" 
+            ? deleteSubjects 
+            : deleteSubject;
+    
+        dispatch(deleteAction(deleteID))
+            .then(() => {
+                dispatch(getSubjectList(currentUser._id, "AllSubjects"));
+            })
+            .catch((err) => {
+                console.error("Delete failed:", err);
+                setMessage("Failed to delete subject(s). Please try again.");
+                setShowPopup(true);
+            });
+    };
 
     const subjectColumns = [
         { id: 'name', label: 'Subject Name', minWidth: 170 },

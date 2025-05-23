@@ -90,3 +90,4 @@ export const {
 } = sclassSlice.actions;
 
 export const sclassReducer = sclassSlice.reducer;
+export const sclassActions = sclassSlice.actions;

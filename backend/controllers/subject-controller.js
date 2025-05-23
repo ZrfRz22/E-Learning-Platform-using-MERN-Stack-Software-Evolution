@@ -118,21 +118,28 @@ const deleteSubject = async (req, res) => {
 
 const deleteSubjects = async (req, res) => {
     try {
-        const deletedSubjects = await Subject.deleteMany({ college: req.params.id });
+        // Find all subjects for the college
+        const subjectsToDelete = await Subject.find({ college: req.params.id });
 
-        // Set the teachSubject field to null in teachers
+        // Extract subject IDs
+        const subjectIds = subjectsToDelete.map(subject => subject._id);
+
+        // Delete those subjects
+        const deleteResult = await Subject.deleteMany({ college: req.params.id });
+
+        // Update teachers whose teachSubject matches deleted subject IDs
         await Teacher.updateMany(
-            { teachSubject: { $in: deletedSubjects.map(subject => subject._id) } },
-            { $unset: { teachSubject: "" }, $unset: { teachSubject: null } }
+            { teachSubject: { $in: subjectIds } },
+            { $unset: { teachSubject: "" } }
         );
 
-        // Set examResult and attendance to null in all students
+        // Remove related examResults and attendance from students for those subjects
         await Student.updateMany(
             {},
-            { $set: { examResult: null, attendance: null } }
+            { $pull: { examResult: { subName: { $in: subjectIds } }, attendance: { subName: { $in: subjectIds } } } }
         );
 
-        res.send(deletedSubjects);
+        res.send(deleteResult);
     } catch (error) {
         res.status(500).json(error);
     }
@@ -140,21 +147,22 @@ const deleteSubjects = async (req, res) => {
 
 const deleteSubjectsByClass = async (req, res) => {
     try {
-        const deletedSubjects = await Subject.deleteMany({ sclassName: req.params.id });
+        const subjectsToDelete = await Subject.find({ sclassName: req.params.id });
+        const subjectIds = subjectsToDelete.map(subject => subject._id);
 
-        // Set the teachSubject field to null in teachers
+        const deleteResult = await Subject.deleteMany({ sclassName: req.params.id });
+
         await Teacher.updateMany(
-            { teachSubject: { $in: deletedSubjects.map(subject => subject._id) } },
-            { $unset: { teachSubject: "" }, $unset: { teachSubject: null } }
+            { teachSubject: { $in: subjectIds } },
+            { $unset: { teachSubject: "" } }
         );
 
-        // Set examResult and attendance to null in all students
         await Student.updateMany(
             {},
-            { $set: { examResult: null, attendance: null } }
+            { $pull: { examResult: { subName: { $in: subjectIds } }, attendance: { subName: { $in: subjectIds } } } }
         );
 
-        res.send(deletedSubjects);
+        res.send(deleteResult);
     } catch (error) {
         res.status(500).json(error);
     }
