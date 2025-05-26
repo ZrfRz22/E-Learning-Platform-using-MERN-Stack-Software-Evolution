@@ -118,28 +118,24 @@ const deleteSubject = async (req, res) => {
 
 const deleteSubjects = async (req, res) => {
     try {
-        // Find all subjects for the college
-        const subjectsToDelete = await Subject.find({ college: req.params.id });
+        const deletionResult = await Subject.deleteMany({ college: req.params.id });
 
-        // Extract subject IDs
-        const subjectIds = subjectsToDelete.map(subject => subject._id);
+        const deletedCount = deletionResult.deletedCount || 0;
 
-        // Delete those subjects
-        const deleteResult = await Subject.deleteMany({ college: req.params.id });
+        if (deletedCount === 0) {
+            res.send({ message: "No Subjects found to delete" });
+            return;
+        }
 
-        // Update teachers whose teachSubject matches deleted subject IDs
+        const deletedSubjects = await Subject.find({ college: req.params.id });
+
+        // 5. Unset teachSubject in Teacher documents if it matches deleted subjects
         await Teacher.updateMany(
-            { teachSubject: { $in: subjectIds } },
-            { $unset: { teachSubject: "" } }
+            { subject: { $in: deletedSubjects.map(subject => subject._id) }, subject: { $exists: true }  },
+            { $unset: { subject: "" }, $unset: { subject: null } }
         );
 
-        // Remove related examResults and attendance from students for those subjects
-        await Student.updateMany(
-            {},
-            { $pull: { examResult: { subName: { $in: subjectIds } }, attendance: { subName: { $in: subjectIds } } } }
-        );
-
-        res.send(deleteResult);
+        res.send(deletionResult);
     } catch (error) {
         res.status(500).json(error);
     }

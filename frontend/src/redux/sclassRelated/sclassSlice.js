@@ -6,6 +6,7 @@ const initialState = {
     sclassDetails: [],
     subjectsList: [],
     subjectDetails: [],
+    teachersList: [],
     loading: false,
     subloading: false,
     error: null,
@@ -72,6 +73,21 @@ const sclassSlice = createSlice({
             state.subjectsList = [];
             state.sclassesList = [];
         },
+        getTeachersSuccess: (state, action) => {
+            state.teachersList = action.payload; // Updated to match
+            state.loading = false;
+            state.error = null;
+        },
+        deleteSubjectsSuccess: (state) => {
+            state.subjectsList = []; // Immediately clear all subjects
+            state.loading = false;
+            state.error = null;
+            state.response = true;
+        },
+        setResponse: (state, action) => {
+            state.response = action.payload;
+        },
+        
     },
 });
 
@@ -86,7 +102,10 @@ export const {
     getFailedTwo,
     resetSubjects,
     getSubDetailsSuccess,
-    getSubDetailsRequest
+    getSubDetailsRequest,
+    getTeachersSuccess,
+    deleteSubjectsSuccess,
+    setResponse
 } = sclassSlice.actions;
 
 export const sclassReducer = sclassSlice.reducer;

@@ -71,6 +71,32 @@ const getSclassStudents = async (req, res) => {
     }
 }
 
+const getSclassTeachers = async (req, res) => {
+    try {
+        const teachers = await Teacher.find({ teachSclass: req.params.id })
+            .populate('teachSubject', 'subName subCode')
+            .populate('teachSclass', 'sclassName'); 
+
+        if (teachers.length > 0) {
+            const sanitizedTeachers = teachers.map(teacher => ({
+                _id: teacher._id,
+                name: teacher.name,
+                email: teacher.email,
+                subject: teacher.teachSubject?.subName || 'Not assigned',
+                subjectCode: teacher.teachSubject?.subCode || '',
+                sclass: teacher.teachSclass?.sclassName || '',
+            }));
+
+            res.json(sanitizedTeachers);
+        } else {
+            res.json([]);
+        }
+    } catch (err) {
+        console.error("Error fetching teachers:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 const deleteSclass = async (req, res) => {
     try {
         const deletedClass = await Sclass.findByIdAndDelete(req.params.id);
@@ -102,4 +128,4 @@ const deleteSclasses = async (req, res) => {
 }
 
 
-module.exports = { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail, getSclassStudents };
+module.exports = { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail, getSclassStudents, getSclassTeachers };

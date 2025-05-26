@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom'
-import { getClassDetails, getClassStudents, deleteSubject, deleteSubjects, getSubjectList } from "../../../redux/sclassRelated/sclassHandle";
-import {
-    Box, Container, Typography, Tab, IconButton
-} from '@mui/material';
+import { deleteUser } from '../../../redux/userRelated/userHandle';
+import { deleteSubjectsByClass, getClassDetails, getClassStudents, deleteSubject, getSubjectList, getClassTeachers } from "../../../redux/sclassRelated/sclassHandle";
+import { Box, Container, Typography, Tab, IconButton } from '@mui/material';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
@@ -21,43 +20,101 @@ const ClassDetails = () => {
     const params = useParams()
     const navigate = useNavigate()
     const dispatch = useDispatch();
-    const { subjectsList, sclassStudents, sclassDetails, loading, error, response, getresponse } = useSelector((state) => state.sclass);
-    const { currentUser } = useSelector((state) => state.user);
-
+    const { teachersList, subjectsList, sclassStudents, sclassDetails, loading, error, response, getresponse } = useSelector((state) => state.sclass);
     const classID = params.id
 
-    useEffect(() => {
+    const [value, setValue] = useState('1');
+    const [showPopup, setShowPopup] = useState(false);
+    const [message, setMessage] = useState("");
+
+    const refreshData = useCallback(() => {
         dispatch(getClassDetails(classID, "Sclass"));
-        dispatch(getSubjectList(classID, "ClassSubjects"))
+        dispatch(getSubjectList(classID, "ClassSubjects"));
         dispatch(getClassStudents(classID));
-    }, [dispatch, classID])
+        dispatch(getClassTeachers(classID));
+    }, [dispatch, classID]);
+
+    useEffect(() => {
+        refreshData();
+    }, [refreshData]);
+
+
 
     if (error) {
         console.log(error)
     }
 
-    const [value, setValue] = useState('1');
-
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
 
-    const [showPopup, setShowPopup] = useState(false);
-    const [message, setMessage] = useState("");
-
-    const deleteHandler = (deleteID, type = "Subject") => {
-        const deleteAction = type === "Subjects" 
-            ? deleteSubjects 
-            : deleteSubject;
-    
-        dispatch(deleteAction(deleteID))
+    const deleteSubjectHandler = (deleteID) => {
+        dispatch(deleteSubject(deleteID, classID))
             .then(() => {
-                dispatch(getSubjectList(currentUser._id, "AllSubjects"));
+                setMessage("Subject deleted successfully");
+                setShowPopup(true);
+                refreshData();
             })
             .catch((err) => {
-                console.error("Delete failed:", err);
-                setMessage("Failed to delete subject(s). Please try again.");
+                setMessage("Failed to delete subject");
                 setShowPopup(true);
+                console.error("Delete failed:", err);
+            });
+    };
+
+     const deleteAllSubjectsHandler = () => {
+        dispatch(deleteSubjectsByClass(classID, "SubjectsClass"))
+            .then(() => {
+                setMessage("All subjects removed successfully");
+                setShowPopup(true);
+                refreshData();
+            })
+            .catch((err) => {
+                setMessage("Failed to remove all subjects");
+                setShowPopup(true);
+                console.error("Delete failed:", err);
+            });
+    };
+
+    const deleteTeacherHandler = (deleteID) => {
+        dispatch(deleteUser(deleteID, "Teacher"))
+            .then(() => {
+                setMessage("Teacher removed successfully");
+                setShowPopup(true);
+                refreshData();
+            })
+            .catch((err) => {
+                setMessage("Failed to remove teacher");
+                setShowPopup(true);
+                console.error("Delete failed:", err);
+            });
+    };
+
+    const deleteStudentHandler = (deleteID) => {
+        dispatch(deleteUser(deleteID, "Student"))
+            .then(() => {
+                setMessage("Student removed successfully");
+                setShowPopup(true);
+                refreshData();
+            })
+            .catch((err) => {
+                setMessage("Failed to remove student");
+                setShowPopup(true);
+                console.error("Delete failed:", err);
+            });
+    };
+
+    const deleteAllStudentsHandler = () => {
+        dispatch(deleteUser(classID, "StudentsClass"))
+            .then(() => {
+                setMessage("All students removed successfully");
+                setShowPopup(true);
+                refreshData();
+            })
+            .catch((err) => {
+                setMessage("Failed to remove students");
+                setShowPopup(true);
+                console.error("Delete failed:", err);
             });
     };
 
@@ -77,7 +134,7 @@ const ClassDetails = () => {
     const SubjectsButtonHaver = ({ row }) => {
         return (
             <>
-                <IconButton onClick={() => deleteHandler(row.id, "Subject")}>
+                <IconButton onClick={() => deleteSubjectHandler(row.id)}>
                     <DeleteIcon color="error" />
                 </IconButton>
                 <BlueButton
@@ -94,12 +151,14 @@ const ClassDetails = () => {
 
     const subjectActions = [
         {
-            icon: <PostAddIcon color="primary" />, name: 'Add New Subject',
+            icon: <PostAddIcon color="primary" />, 
+            name: 'Add New Subject',
             action: () => navigate("/Admin/addsubject/" + classID)
         },
         {
-            icon: <DeleteIcon color="error" />, name: 'Delete All Subjects',
-            action: () => deleteHandler(classID, "SubjectsClass")
+            icon: <DeleteIcon color="error" />, 
+            name: 'Delete All Subjects',
+            action: () => deleteAllSubjectsHandler()
         }
     ];
 
@@ -128,7 +187,7 @@ const ClassDetails = () => {
             </>
         )
     }
-
+    
     const studentColumns = [
         { id: 'name', label: 'Name', minWidth: 170 },
         { id: 'rollNum', label: 'Roll Number', minWidth: 100 },
@@ -145,7 +204,7 @@ const ClassDetails = () => {
     const StudentsButtonHaver = ({ row }) => {
         return (
             <>
-                <IconButton onClick={() => deleteHandler(row.id, "Student")}>
+                <IconButton onClick={() => deleteStudentHandler(row.id)}>
                     <PersonRemoveIcon color="error" />
                 </IconButton>
                 <BlueButton
@@ -168,12 +227,14 @@ const ClassDetails = () => {
 
     const studentActions = [
         {
-            icon: <PersonAddAlt1Icon color="primary" />, name: 'Add New Student',
+            icon: <PersonAddAlt1Icon color="primary" />, 
+            name: 'Add New Student',
             action: () => navigate("/Admin/class/addstudents/" + classID)
         },
         {
-            icon: <PersonRemoveIcon color="error" />, name: 'Delete All Students',
-            action: () => deleteHandler(classID, "StudentsClass")
+            icon: <PersonRemoveIcon color="error" />, 
+            name: 'Delete All Students',
+            action: () => deleteAllStudentsHandler()
         },
     ];
 
@@ -205,17 +266,85 @@ const ClassDetails = () => {
         )
     }
 
+    const teacherColumns = [
+        { id: 'name', label: 'Name', minWidth: 170 },
+        { id: 'email', label: 'Email', minWidth: 200 },
+        { id: 'subject', label: 'Subject', minWidth: 150 },
+    ];
+
+    const teacherRows = teachersList?.map(teacher => ({
+        name: teacher.name,
+        email: teacher.email,
+        subject: teacher.subject?.subName || "Not assigned",
+        id: teacher._id,
+    }));
+
+    const TeachersButtonHaver = ({ row }) => {
+        return (
+            <>
+                <IconButton onClick={() => deleteTeacherHandler(row.id)}>
+                    <PersonRemoveIcon color="error" />
+                </IconButton>
+                                            
+                <BlueButton
+                    variant="contained"
+                    onClick={() => navigate(`/Admin/teachers/teacher/${row.id}`)}
+                >
+                    View
+                </BlueButton>
+            </>
+        );
+    };
+
+    const teacherActions = [
+        {
+            icon: <PersonAddAlt1Icon color="primary" />, 
+            name: 'Add New Teacher',
+            action: () => navigate(`/Admin/teachers/choosesubject/${classID}`)
+        },
+        {
+            icon: <PersonRemoveIcon color="error" />, 
+            name: 'Remove All Teachers',
+            action: () => {
+                teachersList.forEach(teacher => {
+                    deleteTeacherHandler(teacher._id);
+                });
+            }
+        },
+    ];
+
     const ClassTeachersSection = () => {
         return (
             <>
-                Teachers
+                {loading ? (
+                    <div>Loading teachers...</div>
+                ) : teachersList?.length > 0 ? (
+                    <>
+                        <Typography variant="h5" gutterBottom>
+                            Teachers List:
+                        </Typography>
+                
+                        <TableTemplate 
+                            buttonHaver={TeachersButtonHaver} 
+                            columns={teacherColumns} 
+                            rows={teacherRows} 
+                        />
+                        <SpeedDialTemplate actions={teacherActions} />
+                    </>
+                ) : (
+                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                            <GreenButton variant="contained" onClick={() => navigate(`/Admin/teachers/choosesubject/${classID}`)}>
+                                Add Teacher
+                            </GreenButton>
+                        </Box>
+                )}
             </>
-        )
-    }
+        );
+    };
 
     const ClassDetailsSection = () => {
-        const numberOfSubjects = subjectsList.length;
-        const numberOfStudents = sclassStudents.length;
+        const numberOfSubjects = subjectsList?.length || 0;
+        const numberOfStudents = sclassStudents?.length || 0;
 
         return (
             <>

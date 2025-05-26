@@ -192,6 +192,30 @@ const teacherAttendance = async (req, res) => {
     }
 };
 
+const getTeachersByClass = async (req, res) => {
+    try {
+    const teachers = await Teacher.find({ teachSclass: req.params.id })
+        .populate("teachSubject", "subName")
+        .populate("teachSclass", "sclassName");
+
+    if (!teachers || teachers.length === 0) {
+        return res.status(404).json({ message: "No teachers found for this class" });
+    }
+
+    const modifiedTeachers = teachers.map((teacher) => {
+        const t = teacher.toObject();
+        delete t.password;
+        return t;
+    });
+
+    res.status(200).json(modifiedTeachers);
+    } catch (err) {
+        console.error("Error in getTeachersByClass:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
 module.exports = {
     teacherRegister,
     teacherLogIn,
@@ -201,5 +225,6 @@ module.exports = {
     deleteTeacher,
     deleteTeachers,
     deleteTeachersByClass,
-    teacherAttendance
+    teacherAttendance,
+    getTeachersByClass
 };

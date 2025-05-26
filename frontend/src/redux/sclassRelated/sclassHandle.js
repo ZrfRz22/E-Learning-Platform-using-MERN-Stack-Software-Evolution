@@ -10,7 +10,9 @@ import {
     getSubjectsSuccess,
     getSubDetailsSuccess,
     getSubDetailsRequest,
-    sclassActions
+    sclassActions,
+    getTeachersSuccess,
+    setResponse
 } from './sclassSlice';
 
 export const getAllSclasses = (id, address) => async (dispatch) => {
@@ -127,3 +129,41 @@ export const deleteSubjects = (userId) => async (dispatch) => {
         dispatch(sclassActions.getError(error.response?.data?.message || error.message));
     }
 };
+
+export const deleteSubjectsByClass = (userId) => async (dispatch) => {
+    try {
+        dispatch(sclassActions.getRequest());
+        await axios.delete(`${process.env.REACT_APP_BASE_URL}/SubjectsClass/${userId}`);
+        dispatch(setResponse(true));  // you might need to add setResponse reducer
+        // Refresh the subject list after deletion
+        dispatch(getSubjectList(userId, "AllSubjects"));
+    } catch (error) {
+        dispatch(getError(error.response?.data?.message || error.message));
+    }
+}; 
+
+export const getClassTeachers = (classID) => async (dispatch) => {
+    dispatch(getRequest());
+    try {
+        const response = await axios.get(
+            `${process.env.REACT_APP_BASE_URL}/Sclass/Teachers/${classID}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            }
+        );
+        
+        if (response.data.message) {
+            dispatch(getFailedTwo(response.data.message));
+        } else {
+            dispatch(getTeachersSuccess(response.data));
+        }
+    } catch (error) {
+        dispatch(getError(error.response?.data?.message || "Failed to fetch teachers"));
+    }
+};
+
+
+
+
