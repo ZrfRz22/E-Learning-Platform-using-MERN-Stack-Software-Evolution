@@ -2,35 +2,50 @@ const bcrypt = require('bcrypt');
 const Student = require('../models/studentSchema.js');
 const Subject = require('../models/subjectSchema.js');
 
+// Password strength checker function
+function isStrongPassword(password) {
+  // Password must be at least 8 characters and include uppercase, lowercase, number, and special character
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return strongPasswordRegex.test(password);
+}
+
 const studentRegister = async (req, res) => {
-    try {
-        const salt = await bcrypt.genSalt(10);
-        const hashedPass = await bcrypt.hash(req.body.password, salt);
+  try {
+    const { password } = req.body;
 
-        const existingStudent = await Student.findOne({
-            rollNum: req.body.rollNum,
-            college: req.body.adminID,
-            sclassName: req.body.sclassName,
-        });
-
-        if (existingStudent) {
-            res.send({ message: 'Roll Number already exists' });
-        }
-        else {
-            const student = new Student({
-                ...req.body,
-                college: req.body.adminID,
-                password: hashedPass
-            });
-
-            let result = await student.save();
-
-            result.password = undefined;
-            res.send(result);
-        }
-    } catch (err) {
-        res.status(500).json(err);
+    if (!isStrongPassword(password)) {
+      return res.status(400).send({
+        message:
+          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
+      });
     }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPass = await bcrypt.hash(password, salt);
+
+    const existingStudent = await Student.findOne({
+      rollNum: req.body.rollNum,
+      college: req.body.adminID,
+      sclassName: req.body.sclassName,
+    });
+
+    if (existingStudent) {
+      return res.send({ message: 'Roll Number already exists' });
+    }
+
+    const student = new Student({
+      ...req.body,
+      college: req.body.adminID,
+      password: hashedPass,
+    });
+
+    let result = await student.save();
+
+    result.password = undefined;
+    res.send(result);
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 const studentLogIn = async (req, res) => {
@@ -127,21 +142,30 @@ const deleteStudentsByClass = async (req, res) => {
 }
 
 const updateStudent = async (req, res) => {
-    try {
-        if (req.body.password) {
-            const salt = await bcrypt.genSalt(10)
-            res.body.password = await bcrypt.hash(res.body.password, salt)
-        }
-        let result = await Student.findByIdAndUpdate(req.params.id,
-            { $set: req.body },
-            { new: true })
-
-        result.password = undefined;
-        res.send(result)
-    } catch (error) {
-        res.status(500).json(error);
+  try {
+    if (req.body.password) {
+      if (!isStrongPassword(req.body.password)) {
+        return res.status(400).send({
+          message:
+            'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
+        });
+      }
+      const salt = await bcrypt.genSalt(10);
+      req.body.password = await bcrypt.hash(req.body.password, salt);
     }
-}
+    let result = await Student.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+
+    result.password = undefined;
+    res.send(result);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
 
 const updateExamResult = async (req, res) => {
     const { subName, marksObtained } = req.body;
@@ -273,19 +297,19 @@ const removeStudentAttendance = async (req, res) => {
 
 
 module.exports = {
-    studentRegister,
-    studentLogIn,
-    getStudents,
-    getStudentDetail,
-    deleteStudents,
-    deleteStudent,
-    updateStudent,
-    studentAttendance,
-    deleteStudentsByClass,
-    updateExamResult,
+  studentRegister,
+  studentLogIn,
+  getStudents,
+  getStudentDetail,
+  deleteStudents,
+  deleteStudent,
+  updateStudent,
+  studentAttendance,
+  deleteStudentsByClass,
+  updateExamResult,
 
-    clearAllStudentsAttendanceBySubject,
-    clearAllStudentsAttendance,
-    removeStudentAttendanceBySubject,
-    removeStudentAttendance,
+  clearAllStudentsAttendanceBySubject,
+  clearAllStudentsAttendance,
+  removeStudentAttendanceBySubject,
+  removeStudentAttendance,
 };

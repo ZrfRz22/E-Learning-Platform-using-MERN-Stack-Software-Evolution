@@ -8,34 +8,48 @@ const Notice = require('../models/noticeSchema.js');
 const Complain = require('../models/complainSchema.js');
 
 
- const adminRegister = async (req, res) => {
-     try {
-         const salt = await bcrypt.genSalt(10);
-         const hashedPass = await bcrypt.hash(req.body.password, salt);
+// Password strength checker function
+function isStrongPassword(password) {
+  // Minimum 8 chars, at least one uppercase, lowercase, number, special char
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return strongPasswordRegex.test(password);
+}
 
-         const admin = new Admin({
-             ...req.body,
-             password: hashedPass
-         });
+const adminRegister = async (req, res) => {
+  try {
+    const { password } = req.body;
 
-         const existingAdminByEmail = await Admin.findOne({ email: req.body.email });
-         const existingCollege = await Admin.findOne({ collegeName: req.body.collegeName });
+    if (!isStrongPassword(password)) {
+      return res.status(400).send({
+        message:
+          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
+      });
+    }
 
-         if (existingAdminByEmail) {
-             res.send({ message: 'Email already exists' });
-         }
-         else if (existingCollege) {
-             res.send({ message: 'College name already exists' });
-         }
-         else {
-             let result = await admin.save();
-             result.password = undefined;
-             res.send(result);
-         }
-     } catch (err) {
-         res.status(500).json(err);
-     }
- };
+    const salt = await bcrypt.genSalt(10);
+    const hashedPass = await bcrypt.hash(password, salt);
+
+    const admin = new Admin({
+      ...req.body,
+      password: hashedPass,
+    });
+
+    const existingAdminByEmail = await Admin.findOne({ email: req.body.email });
+    const existingCollege = await Admin.findOne({ collegeName: req.body.collegeName });
+
+    if (existingAdminByEmail) {
+      return res.send({ message: 'Email already exists' });
+    } else if (existingCollege) {
+      return res.send({ message: 'College name already exists' });
+    } else {
+      let result = await admin.save();
+      result.password = undefined;
+      return res.send(result);
+    }
+  } catch (err) {
+    res.status(500).json(err);
+  }
+};
 
  const adminLogIn = async (req, res) => {
      if (req.body.email && req.body.password) {

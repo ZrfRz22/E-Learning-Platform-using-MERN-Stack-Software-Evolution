@@ -7,6 +7,11 @@ import { underControl } from '../../../redux/userRelated/userSlice';
 import { getAllSclasses } from '../../../redux/sclassRelated/sclassHandle';
 import { Container, Typography, TextField, Button, CircularProgress, FormControl, InputLabel, Select, MenuItem, Box } from '@mui/material';
 
+const isStrongPassword = (password) => {
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return strongPasswordRegex.test(password);
+};
+
 const AddStudent = ({ situation }) => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
@@ -59,16 +64,23 @@ const AddStudent = ({ situation }) => {
     const fields = { name, rollNum, password, sclassName, adminID, role, attendance }
 
     const submitHandler = (event) => {
-        event.preventDefault()
+        event.preventDefault();
+
         if (sclassName === "") {
-            setMessage("Please select a classname")
-            setShowPopup(true)
+            setMessage("Please select a classname");
+            setShowPopup(true);
+        return;
         }
-        else {
-            setLoader(true)
-            dispatch(registerUser(fields, role))
+
+        if (!isStrongPassword(password)) {
+            setMessage("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+            setShowPopup(true);
+        return;
         }
-    }
+
+        setLoader(true);
+        dispatch(registerUser(fields, role));
+    };
 
     useEffect(() => {
         if (status === 'added') {

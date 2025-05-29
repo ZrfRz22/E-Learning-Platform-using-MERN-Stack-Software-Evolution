@@ -2,28 +2,50 @@ const bcrypt = require('bcrypt');
 const Teacher = require('../models/teacherSchema.js');
 const Subject = require('../models/subjectSchema.js');
 
+// Password strength checker function
+function isStrongPassword(password) {
+  // At least 8 chars, with uppercase, lowercase, digit, special char
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return strongPasswordRegex.test(password);
+}
+
 const teacherRegister = async (req, res) => {
-    const { name, email, password, role, college, teachSubject, teachSclass } = req.body;
-    try {
-        const salt = await bcrypt.genSalt(10);
-        const hashedPass = await bcrypt.hash(password, salt);
-
-        const teacher = new Teacher({ name, email, password: hashedPass, role, college, teachSubject, teachSclass });
-
-        const existingTeacherByEmail = await Teacher.findOne({ email });
-
-        if (existingTeacherByEmail) {
-            res.send({ message: 'Email already exists' });
-        }
-        else {
-            let result = await teacher.save();
-            await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
-            result.password = undefined;
-            res.send(result);
-        }
-    } catch (err) {
-        res.status(500).json(err);
+  const { name, email, password, role, college, teachSubject, teachSclass } = req.body;
+  try {
+    // Validate password strength
+    if (!isStrongPassword(password)) {
+      return res.status(400).send({
+        message:
+          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
+      });
     }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPass = await bcrypt.hash(password, salt);
+
+    const teacher = new Teacher({
+      name,
+      email,
+      password: hashedPass,
+      role,
+      college,
+      teachSubject,
+      teachSclass,
+    });
+
+    const existingTeacherByEmail = await Teacher.findOne({ email });
+
+    if (existingTeacherByEmail) {
+      return res.send({ message: 'Email already exists' });
+    } else {
+      let result = await teacher.save();
+      await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
+      result.password = undefined;
+      res.send(result);
+    }
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 const teacherLogIn = async (req, res) => {
@@ -82,7 +104,7 @@ const getTeacherDetail = async (req, res) => {
     } catch (err) {
         res.status(500).json(err);
     }
-}
+};
 
 const updateTeacherSubject = async (req, res) => {
     const { teacherId, teachSubject } = req.body;
@@ -217,14 +239,15 @@ const getTeachersByClass = async (req, res) => {
 
 
 module.exports = {
-    teacherRegister,
-    teacherLogIn,
-    getTeachers,
-    getTeacherDetail,
-    updateTeacherSubject,
-    deleteTeacher,
-    deleteTeachers,
-    deleteTeachersByClass,
-    teacherAttendance,
-    getTeachersByClass
+  teacherRegister,
+  teacherLogIn,
+  getTeachers,
+  getTeacherDetail,
+  updateTeacherSubject,
+  deleteTeacher,
+  deleteTeachers,
+  deleteTeachersByClass,
+  teacherAttendance,
+  getTeachersByClass,
+  // updateTeacher // Uncomment if you implement updateTeacher
 };

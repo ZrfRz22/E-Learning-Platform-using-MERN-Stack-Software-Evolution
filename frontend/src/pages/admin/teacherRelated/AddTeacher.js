@@ -7,6 +7,11 @@ import { underControl } from '../../../redux/userRelated/userSlice';
 import { Box, Button, CircularProgress, Container, TextField, Typography } from '@mui/material';
 import Popup from '../../../components/Popup';
 
+const isStrongPassword = (password) => {
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return strongPasswordRegex.test(password);
+};
+
 const AddTeacher = () => {
     const params = useParams();
     const dispatch = useDispatch();
@@ -36,6 +41,19 @@ const AddTeacher = () => {
 
     const submitHandler = (e) => {
         e.preventDefault();
+
+        if (!name || !email || !password) {
+            setMessage("Please fill all required fields.");
+            setShowPopup(true);
+            return;
+        }
+
+        if (!isStrongPassword(password)) {
+            setMessage("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+            setShowPopup(true);
+            return;
+        }
+
         setLoader(true);
         dispatch(registerUser(fields, role));
     };

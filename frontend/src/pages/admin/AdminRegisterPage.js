@@ -13,6 +13,12 @@ import Popup from '../../components/Popup';
 
 const defaultTheme = createTheme();
 
+const isStrongPassword = (password) => {
+  // Minimum 8 chars, at least one uppercase, lowercase, digit, special char
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return strongPasswordRegex.test(password);
+};
+
 const AdminRegisterPage = () => {
 
     const dispatch = useDispatch()
@@ -32,25 +38,39 @@ const AdminRegisterPage = () => {
     const role = "Admin"
 
     const handleSubmit = (event) => {
-        event.preventDefault();
+    event.preventDefault();
 
-        const name = event.target.adminName.value;
-        const collegeName = event.target.collegeName.value;
-        const email = event.target.email.value;
-        const password = event.target.password.value;
+    const name = event.target.adminName.value;
+    const collegeName = event.target.collegeName.value;
+    const email = event.target.email.value;
+    const password = event.target.password.value;
 
-        if (!name || !collegeName || !email || !password) {
-            if (!name) setAdminNameError(true);
-            if (!collegeName) setCollegeNameError(true);
-            if (!email) setEmailError(true);
-            if (!password) setPasswordError(true);
-            return;
-        }
+    // Reset errors
+    setAdminNameError(false);
+    setCollegeNameError(false);
+    setEmailError(false);
+    setPasswordError(false);
 
-        const fields = { name, email, password, role, collegeName }
-        setLoader(true)
-        dispatch(registerUser(fields, role))
-    };
+    if (!name || !collegeName || !email || !password) {
+      if (!name) setAdminNameError(true);
+      if (!collegeName) setCollegeNameError(true);
+      if (!email) setEmailError(true);
+      if (!password) setPasswordError(true);
+      return;
+    }
+
+    // New password strength check:
+    if (!isStrongPassword(password)) {
+      setPasswordError(true);
+      setMessage("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+      setShowPopup(true);
+      return;
+    }
+
+    const fields = { name, email, password, role, collegeName };
+    setLoader(true);
+    dispatch(registerUser(fields, role));
+  };
 
     const handleInputChange = (event) => {
         const { name } = event.target;
