@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom'
 import { getAllTeachers } from '../../../redux/teacherRelated/teacherHandle';
 import {
-    Paper, Table, TableBody, TableContainer,
+    Avatar, Paper, Table, TableBody, TableContainer,
     TableHead, TablePagination, Button, Box, IconButton,
 } from '@mui/material';
 import { deleteUser } from '../../../redux/userRelated/userHandle';
@@ -62,14 +62,36 @@ const ShowTeachers = () => {
     ];
 
     const rows = teachersList.map((teacher) => {
+        // Construct the full image URL for the teacher's profile picture
+        const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/teacher/${teacher.profilePic}`;
+
         return {
-            name: teacher.name,
+            // Display the teacher's name with avatar using a flex layout
+            name: (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar 
+                        src={imageUrl}
+                        alt={teacher.name} // Adds alt text for accessibility
+                        sx={{ width: 32, height: 32, mr: 2 }} // Small avatar with spacing
+                    />
+                    {teacher.name}
+                </Box>
+            ),
+
+            // Show subject name the teacher is assigned to (with fallback if undefined)
             teachSubject: teacher.teachSubject?.subName || null,
+
+            // Display class name the teacher is assigned to
             teachSclass: teacher.teachSclass.sclassName,
+
+            // Store class ID for later use (e.g., linking or actions)
             teachSclassID: teacher.teachSclass._id,
+
+            // Unique ID for the table row or internal logic
             id: teacher._id,
         };
     });
+
 
     const actions = [
         {

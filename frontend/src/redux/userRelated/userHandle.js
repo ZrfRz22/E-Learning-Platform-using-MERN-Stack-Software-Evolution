@@ -35,19 +35,20 @@ export const registerUser = (fields, role) => async (dispatch) => {
 
     try {
         const result = await axios.post(`${process.env.REACT_APP_BASE_URL}/${role}Reg`, fields, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
+
+        // Correctly differentiates between self-registration and admin-adding-user
         if (result.data.collegeName) {
-            dispatch(authSuccess(result.data));
-        }
-        else if (result.data.college) {
-            dispatch(stuffAdded());
-        }
-        else {
-            dispatch(authFailed(result.data.message));
+            dispatch(authSuccess(result.data)); // Admin registering themselves
+        } else if (result.data.name) {
+            dispatch(stuffAdded(result.data));  // Admin adds student/teacher
+        } else {
+            dispatch(authFailed(result.data.message)); // Backend responded with failure
         }
     } catch (error) {
-        dispatch(authError(error));
+        const errorMessage = error.response ? error.response.data.message : error.message;
+        dispatch(authError(errorMessage));
     }
 };
 
@@ -122,5 +123,22 @@ export const addStuff = (fields, address) => async (dispatch) => {
         }
     } catch (error) {
         dispatch(authError(error));
+    }
+};
+
+export const updateUserProfilePic = (role, id, fields) => async (dispatch) => {
+    dispatch(authRequest());
+
+    try {
+        const result = await axios.put(`${process.env.REACT_APP_BASE_URL}/${role}ProfilePic/${id}`, fields, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (result.data) {
+            dispatch(authSuccess(result.data)); // Profile pic updated, currentUser state refreshed
+        }
+    } catch (error) {
+        const errorMessage = error.response ? error.response.data.message : error.message;
+        dispatch(authError(errorMessage));
     }
 };

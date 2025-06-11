@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { deleteUser, getUserDetails, updateUser } from '../../../redux/userRelated/userHandle';
 import { useNavigate, useParams } from 'react-router-dom'
 import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
-import { Box, Button, Collapse, IconButton, Table, TableBody, TableHead, Typography, Tab, Paper, BottomNavigation, BottomNavigationAction, Container } from '@mui/material';
+import { Avatar, Box, Button, Collapse, IconButton, Table, TableBody, TableHead, Typography, Tab, Paper, BottomNavigation, BottomNavigationAction, Container } from '@mui/material';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
@@ -342,6 +342,13 @@ const ViewStudent = () => {
     const StudentDetailsSection = () => {
         return (
             <div>
+                <Avatar 
+                    // Dynamically sets the source of the avatar using the student's profile picture filename
+                    src={`${process.env.REACT_APP_BASE_URL}/uploads/student/${userDetails.profilePic}`}
+
+                    // Sets the avatar size to 100x100 pixels and adds right margin for spacing
+                    sx={{ width: 100, height: 100, mr: 2 }} 
+                />
                 Name: {userDetails.name}
                 <br />
                 Roll Number: {userDetails.rollNum}

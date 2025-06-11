@@ -3,9 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
 import { getAllStudents } from '../../../redux/studentRelated/studentHandle';
 import { deleteUser } from '../../../redux/userRelated/userHandle';
-import {
-    Paper, Box, IconButton
-} from '@mui/material';
+import { Avatar, Paper, Box, IconButton } from '@mui/material';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import { BlackButton, BlueButton, GreenButton } from '../../../components/buttonStyles';
 import TableTemplate from '../../../components/TableTemplate';
@@ -60,14 +58,34 @@ const ShowStudents = () => {
         { id: 'sclassName', label: 'Class', minWidth: 170 },
     ]
 
+    // Map through the list of students to prepare structured data for a UI table or grid
     const studentRows = studentsList && studentsList.length > 0 && studentsList.map((student) => {
+        // Construct the full image URL using the base URL and the student's profile picture filename
+        const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
+        
         return {
-            name: student.name,
+            // Display student's name alongside their profile picture using a horizontal layout
+            name: (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar 
+                        src={imageUrl}     // Load student profile picture
+                        sx={{ mr: 2 }}     // Add right margin for spacing between avatar and name
+                    />
+                    {student.name}         
+                </Box>
+            ),
+
+            // Student's roll number (for display or sorting)
             rollNum: student.rollNum,
+
+            // Display the name of the class the student belongs to
             sclassName: student.sclassName.sclassName,
+
+            // Unique ID used for keying or referencing the student
             id: student._id,
         };
-    })
+    });
+
 
     const StudentButtonHaver = ({ row }) => {
         const options = ['Take Attendance', 'Provide Marks'];

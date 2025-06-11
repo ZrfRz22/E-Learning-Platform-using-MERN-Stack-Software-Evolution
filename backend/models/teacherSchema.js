@@ -32,6 +32,10 @@ const teacherSchema = new mongoose.Schema({
         ref: 'sclass',
         required: true,
     },
+    profilePic: {
+        type: String, // Store file path of the profile picture image
+        default: "../../frontend/src/assets/default-avatar.jpg"   // Default profile picture image file path
+    },
     attendance: [{
         date: {
             type: Date,

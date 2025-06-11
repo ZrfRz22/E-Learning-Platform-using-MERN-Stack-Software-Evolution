@@ -2,7 +2,7 @@ const router = require('express').Router();
 
 // const { adminRegister, adminLogIn, deleteAdmin, getAdminDetail, updateAdmin } = require('../controllers/admin-controller.js');
 
-const { adminRegister, adminLogIn, getAdminDetail} = require('../controllers/admin-controller.js');
+const { adminRegister, adminLogIn, getAdminDetail, updateAdminProfilePic} = require('../controllers/admin-controller.js');
 
 const { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail, getSclassStudents, getSclassTeachers } = require('../controllers/class-controller.js');
 const { complainCreate, complainList } = require('../controllers/complain-controller.js');
@@ -18,26 +18,64 @@ const {
     studentAttendance,
     deleteStudentsByClass,
     updateExamResult,
+    updateStudentProfilePic,
     clearAllStudentsAttendanceBySubject,
     clearAllStudentsAttendance,
     removeStudentAttendanceBySubject,
     removeStudentAttendance } = require('../controllers/student_controller.js');
 const { subjectCreate, classSubjects, deleteSubjectsByClass, getSubjectDetail, deleteSubject, freeSubjectList, allSubjects, deleteSubjects } = require('../controllers/subject-controller.js');
-const { teacherRegister, teacherLogIn, getTeachers, getTeacherDetail, deleteTeachers, deleteTeachersByClass, deleteTeacher, updateTeacherSubject, teacherAttendance } = require('../controllers/teacher-controller.js');
+const { teacherRegister, teacherLogIn, getTeachers, getTeacherDetail, deleteTeachers, deleteTeachersByClass, deleteTeacher, updateTeacherSubject, teacherAttendance, updateTeacherProfilePic } = require('../controllers/teacher-controller.js');
 
-// Admin
-router.post('/AdminReg', adminRegister);
+const multer = require('multer');
+const path = require('path');
+
+// Multer Storage Configurations
+// Storage for Admin profile pictures
+const adminStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/admin'), // Save in 'uploads/admin' folder
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)), // Unique filename using timestamp
+});
+
+// Storage for Student profile pictures
+const studentStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/student'), // Save in 'uploads/student' folder
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)), // Unique filename using timestamp
+});
+
+// Storage for Teacher profile pictures
+const teacherStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/teacher'), // Save in 'uploads/teacher' folder
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)), // Unique filename using timestamp
+});
+
+// Multer Upload Handlers
+const uploadAdmin = multer({ storage: adminStorage });     // For admin uploads
+const uploadStudent = multer({ storage: studentStorage }); // For student uploads
+const uploadTeacher = multer({ storage: teacherStorage }); // For teacher uploads
+
+// Admin Routes
+
+// Register a new admin with profile picture upload
+router.post('/AdminReg', uploadAdmin.single('profilePic'), adminRegister);
 router.post('/AdminLogin', adminLogIn);
 
-router.get("/Admin/:id", getAdminDetail)
+// Update an admin's profile picture by ID
+router.put("/AdminProfilePic/:id", uploadAdmin.single('profilePic'), updateAdminProfilePic);
+
+router.get("/Admin/:id", getAdminDetail);
+
 // router.delete("/Admin/:id", deleteAdmin)
 
 // router.put("/Admin/:id", updateAdmin)
 
-// Student
 
-router.post('/StudentReg', studentRegister);
+// Student Routes
+// Register a new student with profile picture upload
+router.post('/StudentReg', uploadStudent.single('profilePic'), studentRegister);
 router.post('/StudentLogin', studentLogIn)
+
+// Update an student's profile picture by ID
+router.put("/StudentProfilePic/:id", uploadStudent.single('profilePic'), updateStudentProfilePic);
 
 router.get("/Students/:id", getStudents)
 router.get("/Student/:id", getStudentDetail)
@@ -58,10 +96,14 @@ router.put('/RemoveAllStudentsAtten/:id', clearAllStudentsAttendance);
 router.put('/RemoveStudentSubAtten/:id', removeStudentAttendanceBySubject);
 router.put('/RemoveStudentAtten/:id', removeStudentAttendance)
 
-// Teacher
 
-router.post('/TeacherReg', teacherRegister);
+// Teacher Routes
+// Register a new teacher with profile picture upload
+router.post('/TeacherReg', uploadTeacher.single('profilePic'), teacherRegister);
 router.post('/TeacherLogin', teacherLogIn)
+
+// Update an teacher's profile picture by ID
+router.put("/TeacherProfilePic/:id", uploadTeacher.single('profilePic'), updateTeacherProfilePic);
 
 router.get("/Teachers/:id", getTeachers)
 router.get("/Teacher/:id", getTeacherDetail)
@@ -74,8 +116,8 @@ router.put("/TeacherSubject", updateTeacherSubject)
 
 router.post('/TeacherAttendance/:id', teacherAttendance)
 
-// Notice
 
+// Notice Routes
 router.post('/NoticeCreate', noticeCreate);
 
 router.get('/NoticeList/:id', noticeList);
@@ -85,14 +127,14 @@ router.delete("/Notice/:id", deleteNotice)
 
 router.put("/Notice/:id", updateNotice)
 
-// Complain
 
+// Complain Routes
 router.post('/ComplainCreate', complainCreate);
 
 router.get('/ComplainList/:id', complainList);
 
-// Sclass
 
+// Sclass Routes
 router.post('/SclassCreate', sclassCreate);
 
 router.get('/SclassList/:id', sclassList);
@@ -104,8 +146,8 @@ router.get('/Sclass/Teachers/:id', getSclassTeachers);
 router.delete("/Sclasses/:id", deleteSclasses)
 router.delete("/Sclass/:id", deleteSclass)
 
-// Subject
 
+// Subject Routes
 router.post('/SubjectCreate', subjectCreate);
 
 router.get('/AllSubjects/:id', allSubjects);

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUserDetails } from '../../redux/userRelated/userHandle';
 import { useNavigate, useParams } from 'react-router-dom'
-import { Box, Button, Collapse, Table, TableBody, TableHead, Typography } from '@mui/material';
+import { Avatar, Box, Button, Collapse, Table, TableBody, TableHead, Typography } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { calculateOverallAttendancePercentage, calculateSubjectAttendancePercentage, groupAttendanceBySubject } from '../../components/attendanceCalculator';
 import CustomPieChart from '../../components/CustomPieChart'
@@ -59,6 +59,11 @@ const TeacherViewStudent = () => {
         { name: 'Absent', value: overallAbsentPercentage }
     ];
 
+    // Get the student's profile picture image URL
+    const imageUrl = userDetails?.profilePic
+        ? `${process.env.REACT_APP_BASE_URL}/uploads/student/${userDetails.profilePic}`
+        : null;
+
     return (
         <>
             {loading
@@ -68,6 +73,13 @@ const TeacherViewStudent = () => {
                 </>
                 :
                 <div>
+                    {/* Display the profile picture */}
+                    <Avatar
+                        alt={userDetails.name}
+                        src={imageUrl}
+                        sx={{ width: 150, height: 150, mb: 2, fontSize: '5rem' }}
+                    >
+                    </Avatar>
                     Name: {userDetails.name}
                     <br />
                     Roll Number: {userDetails.rollNum}

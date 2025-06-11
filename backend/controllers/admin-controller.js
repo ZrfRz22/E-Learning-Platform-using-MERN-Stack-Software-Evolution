@@ -6,10 +6,12 @@ const Teacher = require('../models/teacherSchema.js');
 const Subject = require('../models/subjectSchema.js');
 const Notice = require('../models/noticeSchema.js');
 const Complain = require('../models/complainSchema.js');
+const path = require('path'); // Imported path module 
+const fs = require('fs'); // Import file system modue 
 
-
-// Password strength checker function
+// Password strength checker function 
 function isStrongPassword(password) {
+
   // Minimum 8 chars, at least one uppercase, lowercase, number, special char
   const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
   return strongPasswordRegex.test(password);
@@ -17,37 +19,103 @@ function isStrongPassword(password) {
 
 const adminRegister = async (req, res) => {
   try {
-    const { password } = req.body;
+    // Extract relevant fields from the request body
+    const { email, collegeName, password, ...rest } = req.body;
 
+    // Simple password strength check
     if (!isStrongPassword(password)) {
-      return res.status(400).send({
-        message:
-          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
+      return res.status(400).json({
+        message: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.'
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(password, salt);
-
-    const admin = new Admin({
-      ...req.body,
-      password: hashedPass,
-    });
-
-    const existingAdminByEmail = await Admin.findOne({ email: req.body.email });
-    const existingCollege = await Admin.findOne({ collegeName: req.body.collegeName });
-
+    // Check if email already exists
+    const existingAdminByEmail = await Admin.findOne({ email });
     if (existingAdminByEmail) {
-      return res.send({ message: 'Email already exists' });
-    } else if (existingCollege) {
-      return res.send({ message: 'College name already exists' });
-    } else {
-      let result = await admin.save();
-      result.password = undefined;
-      return res.send(result);
+      return res.status(409).json({ message: 'Email already exists' });
     }
+
+    // Check if college name already exists
+    const existingCollege = await Admin.findOne({ collegeName });
+    if (existingCollege) {
+      return res.status(409).json({ message: 'College name already exists' });
+    }
+
+    // Prepare admin data
+    const adminData = {
+      email,
+      collegeName,
+      password,
+      ...rest
+    };
+
+    // If a profile picture was uploaded, add its filename to the admin data
+    if (req.file) {
+      adminData.profilePic = req.file.filename;
+    }
+
+    // Create and save the new admin document
+    const admin = new Admin(adminData);
+    const result = await admin.save();
+
+    // Do not return the password in the response
+    result.password = undefined;
+
+    // Send success response with created admin data
+    return res.status(201).json(result);
+
   } catch (err) {
-    res.status(500).json(err);
+    // Log the error for debugging
+    console.error('Admin registration error:', err);
+
+    // Return generic server error response
+    return res.status(500).json({ message: 'An internal server error occurred.' });
+  }
+};
+
+// Method to replace the admin's previous profile picture to a new one
+const updateAdminProfilePic = async (req, res) => {
+  try {
+    // Find the admin by ID from the URL parameters
+    const admin = await Admin.findById(req.params.id);
+
+    // If no admin is found with the given ID, return 404
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    // Save the old profile picture filename for potential deletion
+    const oldImageFilename = admin.profilePic;
+
+    // Set the new profile picture filename (from multer)
+    admin.profilePic = req.file.filename;
+
+    // Save the updated admin document
+    const updatedAdmin = await admin.save();
+
+    // Remove password before sending back the response
+    updatedAdmin.password = undefined;
+
+    // Delete old profile picture if it exists and isn't the default avatar
+    if (oldImageFilename && oldImageFilename !== 'default-avatar.jpg') {
+      const oldImagePath = path.join(__dirname, '..', 'uploads', 'admin', oldImageFilename);
+
+      fs.unlink(oldImagePath, (err) => {
+        if (err) {
+          console.error('Failed to delete old profile picture:', err);
+        } else {
+          console.log('Old profile picture deleted successfully:', oldImageFilename);
+        }
+      });
+    }
+
+    // Send the updated admin object as a response
+    return res.status(200).json(updatedAdmin);
+
+  } catch (err) {
+    // Log the error and send server error response
+    console.error('Update profile picture error:', err);
+    return res.status(500).json({ message: 'An internal server error occurred.' });
   }
 };
 
@@ -121,4 +189,4 @@ const getAdminDetail = async (req, res) => {
 
 // module.exports = { adminRegister, adminLogIn, getAdminDetail, deleteAdmin, updateAdmin };
 
-module.exports = { adminRegister, adminLogIn, getAdminDetail };
+module.exports = { adminRegister, adminLogIn, getAdminDetail, updateAdminProfilePic };

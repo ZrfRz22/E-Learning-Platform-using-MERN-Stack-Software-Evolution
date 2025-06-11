@@ -17,6 +17,12 @@ const AccountMenu = () => {
     const handleClose = () => {
         setAnchorEl(null);
     };
+
+    // Retrieve the user's profile picture image URL
+    const imageUrl = currentUser.profilePic
+        ? `${process.env.REACT_APP_BASE_URL}/uploads/${currentUser.role.toLowerCase()}/${currentUser.profilePic}`
+        : null;
+
     return (
         <>
             <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
@@ -29,8 +35,11 @@ const AccountMenu = () => {
                         aria-haspopup="true"
                         aria-expanded={open ? 'true' : undefined}
                     >
-                        <Avatar sx={{ width: 32, height: 32 }}>
-                            {String(currentUser.name).charAt(0)}
+                        <Avatar // Display user's profile picture in Account Settings
+                            alt={currentUser.name}
+                            src={imageUrl} // Use the constructed URL here
+                            sx={{ width: 32, height: 32 }}
+                        >
                         </Avatar>
                     </IconButton>
                 </Tooltip>
@@ -49,7 +58,12 @@ const AccountMenu = () => {
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
                 <MenuItem>
-                    <Avatar />
+                    <Avatar // Display user's profile picture in Profile Button
+                        alt={currentUser.name}
+                        src={imageUrl} // Use the constructed URL here
+                        sx={{ width: 32, height: 32 }}
+                    >
+                    </Avatar>
                     <Link to={`/${currentRole}/profile`}>
                         Profile
                     </Link>

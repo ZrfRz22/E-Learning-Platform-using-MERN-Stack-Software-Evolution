@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom'
 import { deleteUser } from '../../../redux/userRelated/userHandle';
 import { deleteSubjectsByClass, getClassDetails, getClassStudents, deleteSubject, getSubjectList, getClassTeachers } from "../../../redux/sclassRelated/sclassHandle";
-import { Box, Container, Typography, Tab, IconButton } from '@mui/material';
+import { Avatar, Box, Container, Typography, Tab, IconButton } from '@mui/material';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
@@ -194,12 +194,28 @@ const ClassDetails = () => {
     ]
 
     const studentRows = sclassStudents.map((student) => {
+        // Construct the full URL to the student's profile picture
+        const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
+        
         return {
-            name: student.name,
+            // Combine student's avatar and name using a flex container
+            name: (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {/* Display student profile picture using Avatar */}
+                    <Avatar 
+                        src={imageUrl} 
+                        sx={{ mr: 2 }} // Add spacing between the avatar and the name
+                    />
+                    {student.name}
+                </Box>
+            ),
+            // Other relevant student information
             rollNum: student.rollNum,
+            sclassName: student.sclassName.sclassName,
             id: student._id,
         };
-    })
+    });
+
 
     const StudentsButtonHaver = ({ row }) => {
         return (
@@ -272,12 +288,29 @@ const ClassDetails = () => {
         { id: 'subject', label: 'Subject', minWidth: 150 },
     ];
 
-    const teacherRows = teachersList?.map(teacher => ({
-        name: teacher.name,
-        email: teacher.email,
-        subject: teacher.subject?.subName || "Not assigned",
-        id: teacher._id,
-    }));
+    const teacherRows = teachersList.map((teacher) => {
+        // Construct the full URL to the teacher's profile picture
+        const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/teacher/${teacher.profilePic}`;
+
+        return {
+            // Combine teacher's avatar and name using a flex container
+            name: (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {/* Display teacher profile picture using Avatar */}
+                    <Avatar 
+                        src={imageUrl} 
+                        sx={{ width: 32, height: 32, mr: 2 }} // Set avatar size and spacing
+                    />
+                    {teacher.name}
+                </Box>
+            ),
+            // Other relevant teacher information
+            email: teacher.email,
+            subject: teacher.subject?.subName || "Not assigned",
+            id: teacher._id,
+        };
+    });
+
 
     const TeachersButtonHaver = ({ row }) => {
         return (

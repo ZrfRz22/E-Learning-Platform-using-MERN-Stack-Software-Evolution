@@ -37,40 +37,38 @@ const AdminRegisterPage = () => {
     const [collegeNameError, setCollegeNameError] = useState(false);
     const role = "Admin"
 
-    const handleSubmit = (event) => {
-    event.preventDefault();
+    const handleSubmit = async (event) => {
+        event.preventDefault(); // Prevent default form submission
+        setLoader(true); // Show loading spinner during async operation
 
-    const name = event.target.adminName.value;
-    const collegeName = event.target.collegeName.value;
-    const email = event.target.email.value;
-    const password = event.target.password.value;
+        try {
+            //  Initialize FormData for multipart/form-data submission 
+            const formData = new FormData();
+            
+            //  Append user data to formData 
+            formData.append("name", event.target.adminName.value);
+            formData.append("collegeName", event.target.collegeName.value);
+            formData.append("email", event.target.email.value);
+            formData.append("password", event.target.password.value);
+            formData.append("role", role); // role can be 'admin', 'student', or 'teacher'
 
-    // Reset errors
-    setAdminNameError(false);
-    setCollegeNameError(false);
-    setEmailError(false);
-    setPasswordError(false);
+            //  Append Profile Picture if Provided 
+            // Check if the user selected a file before appending
+            if (event.target.profilePic.files[0]) {
+                formData.append("profilePic", event.target.profilePic.files[0]); // Attach the image file
+            }
 
-    if (!name || !collegeName || !email || !password) {
-      if (!name) setAdminNameError(true);
-      if (!collegeName) setCollegeNameError(true);
-      if (!email) setEmailError(true);
-      if (!password) setPasswordError(true);
-      return;
-    }
+            //  Dispatch Register Action 
+            // Send form data (including optional image) to the backend
+            console.log("Dispatching registerUser...");
+            const result = await dispatch(registerUser(formData, role)); // 'role' will determine the upload route (e.g., uploads/admin)
+            console.log("Dispatch result:", result); // Debug log to verify dispatch response
 
-    // New password strength check:
-    if (!isStrongPassword(password)) {
-      setPasswordError(true);
-      setMessage("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
-      setShowPopup(true);
-      return;
-    }
-
-    const fields = { name, email, password, role, collegeName };
-    setLoader(true);
-    dispatch(registerUser(fields, role));
-  };
+        } catch (error) {
+            console.error("Dispatch error:", error); // Handle any errors from the async dispatch
+            setLoader(false); // Hide loader if an error occurs
+        }
+    };
 
     const handleInputChange = (event) => {
         const { name } = event.target;
@@ -180,6 +178,15 @@ const AdminRegisterPage = () => {
                                         </InputAdornment>
                                     ),
                                 }}
+                            />
+                            {/* Upload profile picture (Optional for form submission) */}
+                            <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            type="file"
+                            name="profilePic"
+                            inputProps={{ accept: "image/*" }}
                             />
                             <Grid container sx={{ display: "flex", justifyContent: "space-between" }}>
                                 <FormControlLabel

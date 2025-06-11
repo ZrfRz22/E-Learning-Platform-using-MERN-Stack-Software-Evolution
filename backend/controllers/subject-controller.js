@@ -74,19 +74,20 @@ const freeSubjectList = async (req, res) => {
 
 const getSubjectDetail = async (req, res) => {
     try {
-        let subject = await Subject.findById(req.params.id);
+        let subject = await Subject.findById(req.params.id)
+            .populate("sclassName", "sclassName")
+            // Includes profilePic when retrieving teacher info
+            .populate("teacher", "name profilePic"); 
+
         if (subject) {
-            subject = await subject.populate("sclassName", "sclassName")
-            subject = await subject.populate("teacher", "name")
             res.send(subject);
-        }
-        else {
+        } else {
             res.send({ message: "No subject found" });
         }
     } catch (err) {
         res.status(500).json(err);
     }
-}
+};
 
 const deleteSubject = async (req, res) => {
     try {

@@ -2,7 +2,8 @@ const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
 const dotenv = require("dotenv")
-// const bodyParser = require("body-parser")
+const path = require("path") // to import the path model.
+
 const app = express()
 const Routes = require("./routes/route.js")
 
@@ -10,11 +11,12 @@ const PORT = process.env.PORT || 5001
 
 dotenv.config();
 
-// app.use(bodyParser.json({ limit: '10mb', extended: true }))
-// app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
-
 app.use(express.json({ limit: '10mb' }))
 app.use(cors())
+
+// Makes the 'uploads' folder public.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 mongoose
     .connect(process.env.MONGO_URL, {

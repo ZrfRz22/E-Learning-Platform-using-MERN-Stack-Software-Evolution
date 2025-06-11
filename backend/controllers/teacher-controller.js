@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const Teacher = require('../models/teacherSchema.js');
 const Subject = require('../models/subjectSchema.js');
+const fs = require('fs'); // import file system module
+const path = require('path'); // import path module
 
 // Password strength checker function
 function isStrongPassword(password) {
@@ -10,42 +12,97 @@ function isStrongPassword(password) {
 }
 
 const teacherRegister = async (req, res) => {
-  const { name, email, password, role, college, teachSubject, teachSclass } = req.body;
-  try {
-    // Validate password strength
-    if (!isStrongPassword(password)) {
-      return res.status(400).send({
-        message:
-          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
-      });
+    try {
+        // Extract teacher details from request body
+        const { name, email, password, role, college, teachSubject, teachSclass } = req.body;
+
+        // Validate password strength
+        if (!isStrongPassword(password)) {
+            return res.status(400).send({ message: 'Password is not strong enough.' });
+        }
+
+        // Hash the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPass = await bcrypt.hash(password, salt);
+
+        // Check if a teacher with the same email already exists
+        const existingTeacherByEmail = await Teacher.findOne({ email });
+        if (existingTeacherByEmail) {
+            return res.send({ message: 'Email already exists' });
+        }
+
+        // Create a new teacher instance
+        const newTeacher = new Teacher({
+            name,
+            email,
+            password: hashedPass,
+            role,
+            college,
+            teachSubject,
+            teachSclass,
+
+            // Save the uploaded profile picture filename (if provided), else leave undefined
+            profilePic: req.file ? req.file.filename : undefined
+        });
+
+        // Save the new teacher to the database
+        let result = await newTeacher.save();
+
+        // Optionally assign this teacher to a subject (if one was provided)
+        if (teachSubject) {
+            await Subject.findByIdAndUpdate(teachSubject, { teacher: result._id });
+        }
+
+        // Exclude password from the response
+        result.password = undefined;
+        res.send(result);
+
+    } catch (err) {
+        console.error("CRASH IN TEACHER REGISTER:", err);
+        res.status(500).json({ message: "An error occurred.", error: err.message });
     }
+};
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(password, salt);
 
-    const teacher = new Teacher({
-      name,
-      email,
-      password: hashedPass,
-      role,
-      college,
-      teachSubject,
-      teachSclass,
-    });
+const updateTeacherProfilePic = async (req, res) => {
+    try {
+        // Find the teacher by ID
+        const teacher = await Teacher.findById(req.params.id);
+        if (!teacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
 
-    const existingTeacherByEmail = await Teacher.findOne({ email });
+        // Store the current profile picture filename (before updating)
+        const oldImageFilename = teacher.profilePic;
 
-    if (existingTeacherByEmail) {
-      return res.send({ message: 'Email already exists' });
-    } else {
-      let result = await teacher.save();
-      await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
-      result.password = undefined;
-      res.send(result);
+        // Update the profile picture with the new uploaded file
+        teacher.profilePic = req.file.filename;
+
+        // Save the updated teacher record
+        const updatedTeacher = await teacher.save();
+        updatedTeacher.password = undefined; // hide password from response
+
+        // If the old profile picture exists and is not the default avatar, delete it from storage
+        if (oldImageFilename && oldImageFilename !== "default-avatar.jpg") {
+            const oldImagePath = path.join(__dirname, '..', 'uploads', 'teacher', oldImageFilename);
+            
+            // Attempt to delete the old image file
+            fs.unlink(oldImagePath, (err) => {
+                if (err) {
+                    console.error("Failed to delete old teacher profile picture:", err);
+                } else {
+                    console.log("Successfully deleted old teacher profile picture.");
+                }
+            });
+        }
+
+        // Send back the updated teacher data
+        res.status(200).json(updatedTeacher);
+
+    } catch (error) {
+        console.error("ERROR UPDATING TEACHER PROFILE PIC:", error);
+        res.status(500).json({ message: "An error occurred.", error: error.message });
     }
-  } catch (err) {
-    res.status(500).json(err);
-  }
 };
 
 const teacherLogIn = async (req, res) => {
@@ -125,12 +182,31 @@ const updateTeacherSubject = async (req, res) => {
 
 const deleteTeacher = async (req, res) => {
     try {
+        // Find and delete the teacher by ID
         const deletedTeacher = await Teacher.findByIdAndDelete(req.params.id);
 
+        if (!deletedTeacher) {
+            return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        // Unassign the teacher from their subject (if any)
         await Subject.updateOne(
-            { teacher: deletedTeacher._id, teacher: { $exists: true } },
-            { $unset: { teacher: 1 } }
+            { teacher: deletedTeacher._id },
+            { $unset: { teacher: "" } }
         );
+
+        // === Delete teacher's profile picture from storage ===
+        const imageFilename = deletedTeacher.profilePic;
+        if (imageFilename && imageFilename !== "default-avatar.jpg") {
+            const imagePath = path.join(__dirname, '..', 'uploads', 'teacher', imageFilename);
+            fs.unlink(imagePath, (err) => {
+                if (err) {
+                    console.error(`Failed to delete image file: ${imagePath}`, err);
+                } else {
+                    console.log(`Successfully deleted image file: ${imagePath}`);
+                }
+            });
+        }
 
         res.send(deletedTeacher);
     } catch (error) {
@@ -138,23 +214,37 @@ const deleteTeacher = async (req, res) => {
     }
 };
 
+
 const deleteTeachers = async (req, res) => {
     try {
-        const deletionResult = await Teacher.deleteMany({ college: req.params.id });
+        const collegeId = req.params.id;
 
-        const deletedCount = deletionResult.deletedCount || 0;
+        // === Step 1: Get all teachers for the given college to retrieve image filenames ===
+        const teachersToDelete = await Teacher.find({ college: collegeId });
 
-        if (deletedCount === 0) {
-            res.send({ message: "No teachers found to delete" });
-            return;
+        if (teachersToDelete.length === 0) {
+            return res.send({ message: "No teachers found to delete" });
         }
 
-        const deletedTeachers = await Teacher.find({ college: req.params.id });
+        // Filter out only valid profile pics (excluding default avatar)
+        const imageFilesToDelete = teachersToDelete
+            .map(teacher => teacher.profilePic)
+            .filter(pic => pic && pic !== "default-avatar.jpg");
 
-        await Subject.updateMany(
-            { teacher: { $in: deletedTeachers.map(teacher => teacher._id) }, teacher: { $exists: true } },
-            { $unset: { teacher: "" }, $unset: { teacher: null } }
-        );
+        // === Step 2: Delete teachers from DB ===
+        const deletionResult = await Teacher.deleteMany({ college: collegeId });
+
+        // === Step 3: Delete profile picture files ===
+        imageFilesToDelete.forEach(filename => {
+            const imagePath = path.join(__dirname, '..', 'uploads', 'teacher', filename);
+            fs.unlink(imagePath, (err) => {
+                if (err) {
+                    console.error(`Failed to delete image: ${filename}`, err);
+                } else {
+                    console.log(`Deleted image: ${filename}`);
+                }
+            });
+        });
 
         res.send(deletionResult);
     } catch (error) {
@@ -162,23 +252,38 @@ const deleteTeachers = async (req, res) => {
     }
 };
 
+
+// Delete all teachers assigned to a specific class
 const deleteTeachersByClass = async (req, res) => {
     try {
-        const deletionResult = await Teacher.deleteMany({ sclassName: req.params.id });
+        const sclassId = req.params.id;
 
-        const deletedCount = deletionResult.deletedCount || 0;
+        // === Step 1: Get all teachers for the given class ===
+        const teachersToDelete = await Teacher.find({ teachSclass: sclassId });
 
-        if (deletedCount === 0) {
-            res.send({ message: "No teachers found to delete" });
-            return;
+        if (teachersToDelete.length === 0) {
+            return res.send({ message: "No teachers found to delete" });
         }
 
-        const deletedTeachers = await Teacher.find({ sclassName: req.params.id });
+        // Filter profile pics to delete (excluding default)
+        const imageFilesToDelete = teachersToDelete
+            .map(t => t.profilePic)
+            .filter(p => p && p !== "default-avatar.jpg");
 
-        await Subject.updateMany(
-            { teacher: { $in: deletedTeachers.map(teacher => teacher._id) }, teacher: { $exists: true } },
-            { $unset: { teacher: "" }, $unset: { teacher: null } }
-        );
+        // === Step 2: Delete teachers from DB ===
+        const deletionResult = await Teacher.deleteMany({ teachSclass: sclassId });
+
+        // === Step 3: Delete associated profile pictures ===
+        imageFilesToDelete.forEach(filename => {
+            const imagePath = path.join(__dirname, '..', 'uploads', 'teacher', filename);
+            fs.unlink(imagePath, err => {
+                if (err) {
+                    console.error("File deletion error:", err);
+                } else {
+                    console.log(`Deleted teacher profile picture: ${filename}`);
+                }
+            });
+        });
 
         res.send(deletionResult);
     } catch (error) {
@@ -240,6 +345,7 @@ const getTeachersByClass = async (req, res) => {
 
 module.exports = {
   teacherRegister,
+  updateTeacherProfilePic,
   teacherLogIn,
   getTeachers,
   getTeacherDetail,

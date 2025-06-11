@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const Student = require('../models/studentSchema.js');
 const Subject = require('../models/subjectSchema.js');
+const fs = require('fs'); // import file system module
+const path = require('path'); // import path module
 
 // Password strength checker function
 function isStrongPassword(password) {
@@ -10,42 +12,101 @@ function isStrongPassword(password) {
 }
 
 const studentRegister = async (req, res) => {
-  try {
-    const { password } = req.body;
+    try {
+        // Destructure required fields from the request body
+        const { name, rollNum, password, sclassName, adminID } = req.body;
 
-    if (!isStrongPassword(password)) {
-      return res.status(400).send({
-        message:
-          'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.',
-      });
+        // Basic password strength check
+        if (!isStrongPassword(password)) {
+            return res.status(400).send({ message: 'Password is not strong enough.' });
+        }
+
+        // Hash the password using bcrypt
+        const salt = await bcrypt.genSalt(10);
+        const hashedPass = await bcrypt.hash(password, salt);
+
+        // Check if a student with the same roll number, class, and college already exists
+        const existingStudent = await Student.findOne({ rollNum, college: adminID, sclassName });
+
+        if (existingStudent) {
+            return res.status(409).send({ message: 'Roll Number already exists' });
+        }
+
+        // Create a new student object with profile picture if provided
+        const newStudent = new Student({
+            name,
+            rollNum,
+            password: hashedPass,
+            sclassName,
+            college: adminID,
+
+            // (For Profile Picture Feature)
+            profilePic: req.file ? req.file.filename : undefined
+        });
+
+        // Save the new student to the database
+        let result = await newStudent.save();
+
+        // Do not send the password back in the response
+        result.password = undefined;
+
+        // Send the student data as the response
+        res.send(result);
+    } catch (err) {
+        // Log the error for debugging
+        console.error("CRASH IN STUDENT REGISTER:", err);
+
+        // Respond with an internal server error
+        res.status(500).json({ message: "An error occurred.", error: err.message });
     }
+};
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(password, salt);
+// Allows students to replace their profile pic with a new one
+const updateStudentProfilePic = async (req, res) => {
+    try {
+        // Find the student document by ID
+        const student = await Student.findById(req.params.id);
 
-    const existingStudent = await Student.findOne({
-      rollNum: req.body.rollNum,
-      college: req.body.adminID,
-      sclassName: req.body.sclassName,
-    });
+        if (!student) {
+            // Respond with 404 if student is not found
+            return res.status(404).json({ message: "Student not found" });
+        }
 
-    if (existingStudent) {
-      return res.send({ message: 'Roll Number already exists' });
+        // Store the old profile picture filename before updating
+        const oldImageFilename = student.profilePic;
+
+        // Update the profilePic field with the new uploaded filename
+        student.profilePic = req.file.filename;
+
+        // Save the updated student document
+        const updatedStudent = await student.save();
+
+        // Remove the password field before sending response
+        updatedStudent.password = undefined;
+
+        // If the old image is not the default, delete it from the server
+        if (oldImageFilename && oldImageFilename !== "default-avatar.jpg") {
+            const oldImagePath = path.join(__dirname, '..', 'uploads', 'student', oldImageFilename);
+
+            // Delete the old file asynchronously
+            fs.unlink(oldImagePath, (err) => {
+                if (err) {
+                    console.error("Failed to delete old student profile picture:", err);
+                } else {
+                    console.log("Successfully deleted old student profile picture.");
+                }
+            });
+        }
+
+        // Send the updated student data in the response
+        res.status(200).json(updatedStudent);
+    } catch (error) {
+        // Log any errors that occur
+        console.error("ERROR UPDATING STUDENT PROFILE PIC:", error);
+
+        // Respond with an internal server error
+        res.status(500).json({ message: "An error occurred.", error: error.message });
     }
-
-    const student = new Student({
-      ...req.body,
-      college: req.body.adminID,
-      password: hashedPass,
-    });
-
-    let result = await student.save();
-
-    result.password = undefined;
-    res.send(result);
-  } catch (err) {
-    res.status(500).json(err);
-  }
 };
 
 const studentLogIn = async (req, res) => {
@@ -108,38 +169,115 @@ const getStudentDetail = async (req, res) => {
 
 const deleteStudent = async (req, res) => {
     try {
-        const result = await Student.findByIdAndDelete(req.params.id)
-        res.send(result)
+        // Find the student by ID and delete them from the database
+        const student = await Student.findByIdAndDelete(req.params.id);
+
+        // If student is not found, return a 404 error
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Get the filename of the student's profile picture
+        const imageFilename = student.profilePic;
+
+        // Delete the profile picture from the filesystem if it exists and is not the default avatar
+        if (imageFilename && imageFilename !== "default-avatar.jpg") {
+            const imagePath = path.join(__dirname, '..', 'uploads', 'student', imageFilename);
+
+            fs.unlink(imagePath, (err) => {
+                if (err) {
+                    console.error(`Failed to delete image file: ${imagePath}`, err);
+                } else {
+                    console.log(`Successfully deleted image file: ${imagePath}`);
+                }
+            });
+        }
+
+        // Send success response
+        res.send({ message: "Student deleted successfully." });
+
     } catch (error) {
-        res.status(500).json(err);
+        // Handle server error
+        console.error("ERROR DELETING STUDENT:", error);
+        res.status(500).json({ message: "An error occurred.", error: error.message });
     }
-}
+};
 
 const deleteStudents = async (req, res) => {
     try {
-        const result = await Student.deleteMany({ college: req.params.id })
-        if (result.deletedCount === 0) {
-            res.send({ message: "No students found to delete" })
-        } else {
-            res.send(result)
+        const collegeId = req.params.id;
+
+        // 1. Find all students associated with the given college
+        const studentsToDelete = await Student.find({ college: collegeId });
+
+        // If no students found, return a message
+        if (studentsToDelete.length === 0) {
+            return res.send({ message: "No students found to delete" });
         }
+
+        // 2. Extract all profile picture filenames that are not the default
+        const imageFilesToDelete = studentsToDelete
+            .map(student => student.profilePic)
+            .filter(pic => pic && pic !== "default-avatar.jpg");
+
+        // 3. Delete all students belonging to the college from the database
+        const result = await Student.deleteMany({ college: collegeId });
+
+        // 4. Delete all the collected profile pictures from the file system
+        imageFilesToDelete.forEach(filename => {
+            const imagePath = path.join(__dirname, '..', 'uploads', 'student', filename);
+            fs.unlink(imagePath, (err) => {
+                if (err) console.error(`Failed to delete image file: ${imagePath}`, err);
+                else console.log(`Successfully deleted image file: ${imagePath}`);
+            });
+        });
+
+        // Send deletion result (acknowledgment of number of records removed)
+        res.send(result);
+
     } catch (error) {
-        res.status(500).json(err);
+        console.error("ERROR DELETING STUDENTS:", error);
+        res.status(500).json({ message: "An error occurred.", error: error.message });
     }
-}
+};
 
 const deleteStudentsByClass = async (req, res) => {
     try {
-        const result = await Student.deleteMany({ sclassName: req.params.id })
-        if (result.deletedCount === 0) {
-            res.send({ message: "No students found to delete" })
-        } else {
-            res.send(result)
+        const sclassId = req.params.id;
+
+        // 1. Find all students belonging to the specified class
+        const studentsToDelete = await Student.find({ sclassName: sclassId });
+
+        // If no students found, respond with a message
+        if (studentsToDelete.length === 0) {
+            return res.send({ message: "No students found to delete" });
         }
+
+        // 2. Extract all profile picture filenames, skipping any that are default avatars
+        const imageFilesToDelete = studentsToDelete
+            .map(student => student.profilePic)
+            .filter(pic => pic && pic !== "default-avatar.jpg");
+
+        // 3. Delete all students from the class in the database
+        const result = await Student.deleteMany({ sclassName: sclassId });
+
+        // 4. Delete each student's profile picture from the filesystem
+        imageFilesToDelete.forEach(filename => {
+            const imagePath = path.join(__dirname, '..', 'uploads', 'student', filename);
+            fs.unlink(imagePath, (err) => {
+                if (err) console.error(`Failed to delete image file: ${imagePath}`, err);
+                else console.log(`Successfully deleted image file: ${imagePath}`);
+            });
+        });
+
+        // Send deletion result
+        res.send(result);
+
     } catch (error) {
-        res.status(500).json(err);
+        console.error("ERROR DELETING STUDENTS BY CLASS:", error);
+        res.status(500).json({ message: "An error occurred.", error: error.message });
     }
-}
+};
 
 const updateStudent = async (req, res) => {
   try {
@@ -298,6 +436,7 @@ const removeStudentAttendance = async (req, res) => {
 
 module.exports = {
   studentRegister,
+  updateStudentProfilePic,
   studentLogIn,
   getStudents,
   getStudentDetail,
@@ -307,7 +446,6 @@ module.exports = {
   studentAttendance,
   deleteStudentsByClass,
   updateExamResult,
-
   clearAllStudentsAttendanceBySubject,
   clearAllStudentsAttendance,
   removeStudentAttendanceBySubject,

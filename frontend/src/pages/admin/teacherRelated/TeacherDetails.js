@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { getTeacherDetails } from '../../../redux/teacherRelated/teacherHandle';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Container, Typography } from '@mui/material';
+import { Avatar, Button, Container, Typography } from '@mui/material';
 
 const TeacherDetails = () => {
     const navigate = useNavigate();
@@ -26,6 +26,11 @@ const TeacherDetails = () => {
         navigate(`/Admin/teachers/choosesubject/${teacherDetails?.teachSclass?._id}/${teacherDetails?._id}`);
     };
 
+    // Get the profile picture image URL
+    const imageUrl = teacherDetails?.profilePic
+        ? `${process.env.REACT_APP_BASE_URL}/uploads/teacher/${teacherDetails.profilePic}`
+        : null;
+
     return (
         <>
             {loading ? (
@@ -35,6 +40,13 @@ const TeacherDetails = () => {
                     <Typography variant="h4" align="center" gutterBottom>
                         Teacher Details
                     </Typography>
+                     {/*Display teacher's profile picture */}
+                    <Avatar
+                        alt={teacherDetails?.name}
+                        src={imageUrl}
+                        sx={{ width: 150, height: 150, fontSize: '4rem' }}
+                    >
+                    </Avatar>
                     <Typography variant="h6" gutterBottom>
                         Teacher Name: {teacherDetails?.name}
                     </Typography>

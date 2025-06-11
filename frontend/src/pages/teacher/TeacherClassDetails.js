@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom'
 import { getClassStudents } from "../../redux/sclassRelated/sclassHandle";
-import { Paper, Box, Typography, ButtonGroup, Button, Popper, Grow, ClickAwayListener, MenuList, MenuItem } from '@mui/material';
+import { Avatar, Paper, Box, Typography, ButtonGroup, Button, Popper, Grow, ClickAwayListener, MenuList, MenuItem } from '@mui/material';
 import { BlackButton, BlueButton} from "../../components/buttonStyles";
 import TableTemplate from "../../components/TableTemplate";
 import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
@@ -30,13 +30,26 @@ const TeacherClassDetails = () => {
         { id: 'rollNum', label: 'Roll Number', minWidth: 100 },
     ]
 
+    // Map through the list of students to format data for table rows
     const studentRows = sclassStudents.map((student) => {
+        // Construct the full image URL for each student's profile picture
+        const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
+
         return {
-            name: student.name,
+            // Render the name with avatar and name side-by-side
+            name: (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar src={imageUrl} alt={student.name} sx={{ mr: 2 }} />
+                    {student.name}
+                </Box>
+            ),
+            // Student's roll number
             rollNum: student.rollNum,
+
+            // Unique ID used for table row key or operations
             id: student._id,
         };
-    })
+    });
 
     const StudentsButtonHaver = ({ row }) => {
         const options = ['Take Attendance', 'Provide Marks'];

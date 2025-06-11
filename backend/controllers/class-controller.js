@@ -82,6 +82,9 @@ const getSclassTeachers = async (req, res) => {
                 _id: teacher._id,
                 name: teacher.name,
                 email: teacher.email,
+
+                // To retrieve the profile picture of all teachers to be displayed
+                profilePic: teacher.profilePic, 
                 subject: teacher.teachSubject?.subName || 'Not assigned',
                 subjectCode: teacher.teachSubject?.subCode || '',
                 sclass: teacher.teachSclass?.sclassName || '',

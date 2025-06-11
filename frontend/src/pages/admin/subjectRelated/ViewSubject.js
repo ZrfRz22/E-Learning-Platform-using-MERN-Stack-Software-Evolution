@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getClassStudents, getSubjectDetails } from '../../../redux/sclassRelated/sclassHandle';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Tab, Container, Typography, BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
+import { Avatar, Box, Tab, Container, Typography, BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { BlueButton, GreenButton, PurpleButton } from '../../../components/buttonStyles';
 import TableTemplate from '../../../components/TableTemplate';
 import TabContext from '@mui/lab/TabContext';
@@ -48,12 +48,27 @@ const ViewSubject = () => {
   ]
 
   const studentRows = sclassStudents.map((student) => {
-    return {
-      rollNum: student.rollNum,
-      name: student.name,
-      id: student._id,
-    };
-  })
+      // Construct full URL for student's profile picture
+      const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
+      
+      return {
+          // Display avatar alongside student name using a flex container
+          name: (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Avatar 
+                      src={imageUrl} 
+                      // Adds spacing between avatar and name
+                      sx={{ mr: 2 }} 
+                  />
+                  {student.name}
+              </Box>
+          ),
+          rollNum: student.rollNum,
+          sclassName: student.sclassName.sclassName,
+          id: student._id,
+      };
+  });
+
 
   const StudentsAttendanceButtonHaver = ({ row }) => {
     return (
@@ -164,16 +179,29 @@ const ViewSubject = () => {
         <Typography variant="h6" gutterBottom>
           Class Name : {subjectDetails && subjectDetails.sclassName && subjectDetails.sclassName.sclassName}
         </Typography>
-        {subjectDetails && subjectDetails.teacher ?
-          <Typography variant="h6" gutterBottom>
-            Teacher Name : {subjectDetails.teacher.name}
-          </Typography>
-          :
-          <GreenButton variant="contained"
-            onClick={() => navigate("/Admin/teachers/addteacher/" + subjectDetails._id)}>
-            Add Subject Teacher
-          </GreenButton>
-        }
+        {subjectDetails && subjectDetails.teacher ? (
+            // Display the teacher's name and profile picture if a teacher is assigned
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                    Teacher: {subjectDetails.teacher.name}
+                </Typography>
+                <Avatar 
+                    // Load teacher's profile picture using dynamic path
+                    src={`${process.env.REACT_APP_BASE_URL}/uploads/teacher/${subjectDetails.teacher.profilePic}`} 
+                    // Small avatar with left margin for spacing
+                    sx={{ width: 32, height: 32, ml: 2 }} 
+                /> 
+            </Box>
+        ) : (
+            // If no teacher is assigned, show button to add one
+            <GreenButton
+                variant="contained"
+                onClick={() => navigate("/Admin/teachers/addteacher/" + subjectDetails._id)}
+            >
+                Add Subject Teacher
+            </GreenButton>
+        )}
+
       </>
     );
   }
