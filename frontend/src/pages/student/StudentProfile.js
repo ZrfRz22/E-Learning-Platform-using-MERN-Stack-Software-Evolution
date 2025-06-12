@@ -1,9 +1,14 @@
-import React, { useRef } from 'react'; // Import useRef
-import styled from 'styled-components';
-import { Card, CardContent, Typography, Container, Avatar, Badge, IconButton } from '@mui/material'; // Import Badge and IconButton
-import { Edit } from '@mui/icons-material'; // Import Edit icon
+// Import necessary dependencies from React, Redux, Router, MUI, and styled-components
+import React, { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateUserProfilePic } from '../../redux/userRelated/userHandle'; // Import our new action
+import { useNavigate } from 'react-router-dom';
+import {
+    Container, Typography, Box, Avatar, Paper, Grid, Divider,
+    List, ListItem, ListItemText
+} from '@mui/material';
+import { Edit } from '@mui/icons-material';
+import styled from 'styled-components';
+import { updateUserProfilePic } from '../../redux/userRelated/userHandle';
 
 const StudentProfile = () => {
     // Access the current logged-in user from Redux state
@@ -30,6 +35,21 @@ const StudentProfile = () => {
         }
     };
 
+    // Reusable component to show each detail row (name, class, etc.)
+    const DetailItem = ({ label, value }) => (
+        <>
+            <ListItem>
+                <ListItemText
+                    primary={label}
+                    secondary={value || 'Not specified'} // Fallback if value is null
+                    primaryTypographyProps={{ fontWeight: 'bold', color: 'text.primary' }}
+                    secondaryTypographyProps={{ fontSize: '1.1rem', color: 'text.secondary' }}
+                />
+            </ListItem>
+            <Divider component="li" />
+        </>
+    );
+
     // Construct the image URL if profilePic exists
     // Uses the role folder ('student') in this case
     const rolePath = currentUser.role.toLowerCase();
@@ -38,75 +58,108 @@ const StudentProfile = () => {
         : null;
 
     return (
-      <Container maxWidth="md">
-          {/* Hidden file input triggered by the edit button */}
-          <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              accept="image/*"
-              onChange={handleFileChange}
-          />
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            {/* Hidden input for selecting new profile picture */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="image/*"
+                onChange={handleFileChange}
+            />
 
-          {/* Profile card container */}
-          <ProfileCard>
-              <ProfileCardContent>
+            {/* Main profile display section */}
+            <StyledPaper elevation={4}>
+                <Grid container spacing={4}>
+                    {/* Left Column: Profile Picture and Name */}
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <ProfilePictureContainer onClick={handleEditButtonClick}>
+                            <StyledAvatar src={imageUrl} />
+                            {/* Hover overlay with edit icon */}
+                            <EditOverlay>
+                                <Edit sx={{ color: 'white' }} />
+                                <Typography variant="caption" color="white">Change</Typography>
+                            </EditOverlay>
+                        </ProfilePictureContainer>
 
-                  {/* Avatar with edit badge (pencil icon) */}
-                  <Badge
-                      overlap="circular"
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                      badgeContent={
-                          <IconButton
-                              sx={{ backgroundColor: 'white', '&:hover': { bgcolor: '#f0f0f0' } }}
-                              onClick={handleEditButtonClick}
-                          >
-                              <Edit color="primary" />
-                          </IconButton>
-                      }
-                  >
-                      <Avatar
-                          alt={currentUser.name}
-                          src={imageUrl}
-                          sx={{ width: 150, height: 150, margin: '20px', fontSize: '5rem' }}
-                      />
-                  </Badge>
+                        {/* Name and Role */}
+                        <Box sx={{ textAlign: 'center', mt: 2 }}>
+                            <Typography variant="h4" component="h2" fontWeight={600}>
+                                {currentUser?.name}
+                            </Typography>
+                            <Typography variant="subtitle1" color="textSecondary">
+                                Student
+                            </Typography>
+                        </Box>
+                    </Grid>
 
-                  {/* Student information */}
-                  <ProfileText variant="h5" component="h2">
-                      {currentUser.name}
-                  </ProfileText>
-                  <ProfileText variant="subtitle1">
-                      Student Roll No: {currentUser.rollNum}
-                  </ProfileText>
-                  <ProfileText variant="subtitle1">
-                      Class: {currentUser.sclassName.sclassName}
-                  </ProfileText>
-                  <ProfileText variant="subtitle1">
-                      College: {currentUser.college.collegeName}
-                  </ProfileText>
-
-              </ProfileCardContent>
-          </ProfileCard>
-      </Container>
-  );
+                    {/* Right Column: Student Details */}
+                    <Grid item xs={12} md={8}>
+                        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                            Student Details
+                        </Typography>
+                        <List disablePadding>
+                            <DetailItem label="Name" value={currentUser?.name} />
+                            <DetailItem label="Roll Number" value={currentUser?.rollNum} />
+                            <DetailItem label="Class" value={currentUser?.sclassName?.sclassName} />
+                            <DetailItem label="College" value={currentUser?.college?.collegeName} />
+                        </List>
+                    </Grid>
+                </Grid>
+            </StyledPaper>
+        </Container>
+    );
 };
 
 export default StudentProfile;
 
-const ProfileCard = styled(Card)`
-  margin: 20px auto;
-  width: auto;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+// Styled Components
+
+// Custom Paper with padding and rounded corners
+const StyledPaper = styled(Paper)`
+    padding: 40px;
+    border-radius: 20px;
 `;
 
-const ProfileCardContent = styled(CardContent)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+// Container for avatar with hover effect
+const ProfilePictureContainer = styled.div`
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+
+    // Show overlay when hovered
+    &:hover > div {
+        opacity: 1;
+    }
 `;
 
-const ProfileText = styled(Typography)`
-  margin: 10px;
+// Styled avatar with border and shadow
+const StyledAvatar = styled(Avatar)`
+    width: 200px !important;
+    height: 200px !important;
+    font-size: 6rem;
+    border: 4px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+`;
+
+// Overlay that appears on hover with edit icon
+const EditOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 `;

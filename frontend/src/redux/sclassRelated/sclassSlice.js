@@ -36,15 +36,32 @@ const sclassSlice = createSlice({
             state.error = null;
             state.getresponse = null;
         },
+        // When fetching subjects is successful
         getSubjectsSuccess: (state, action) => {
-            state.subjectsList = action.payload;
+            // Combine existing subjects with newly fetched ones
+            const combinedList = [...state.subjectsList, ...action.payload];
+
+            // Create a Map to remove duplicate subjects by their _id
+            // This ensures each subject is unique in the final list
+            const uniqueSubjectsMap = new Map(combinedList.map(subject => [subject._id, subject]));
+
+            // Convert the Map values back into an array and update the state
+            state.subjectsList = Array.from(uniqueSubjectsMap.values());
+
+            // Reset loading and error flags
             state.loading = false;
             state.error = null;
             state.response = null;
         },
+        // When fetching subjects fails
         getFailed: (state, action) => {
-            state.subjectsList = [];
+            // Do not reset subjectsList — this line is commented out to preserve current list
+            // state.subjectsList = [];
+
+            // Set the response to the failure message/payload for error handling or notifications
             state.response = action.payload;
+
+            // Reset loading and error flags
             state.loading = false;
             state.error = null;
         },

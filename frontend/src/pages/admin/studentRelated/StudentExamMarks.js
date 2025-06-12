@@ -1,163 +1,147 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
+// Redux hooks for dispatching actions and accessing state
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+// React Router hooks for routing
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+// Redux actions
 import { getUserDetails } from '../../../redux/userRelated/userHandle';
 import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
 import { updateStudentFields } from '../../../redux/studentRelated/studentHandle';
-
+// Components
 import Popup from '../../../components/Popup';
 import { BlueButton } from '../../../components/buttonStyles';
+// MUI Components
 import {
-    Box, InputLabel,
-    MenuItem, Select,
-    Typography, Stack,
-    TextField, CircularProgress, FormControl
+    Box, InputLabel, MenuItem, Select, Typography,
+    Stack, TextField, CircularProgress, FormControl
 } from '@mui/material';
 
 const StudentExamMarks = ({ situation }) => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const params = useParams();
+    const location = useLocation();
+
+    // Redux state
     const { currentUser, userDetails, loading } = useSelector((state) => state.user);
     const { subjectsList } = useSelector((state) => state.sclass);
     const { response, error, statestatus } = useSelector((state) => state.student);
-    const params = useParams()
 
-    const [studentID, setStudentID] = useState("");
-    const [subjectName, setSubjectName] = useState("");
-    const [chosenSubName, setChosenSubName] = useState("");
-    const [marksObtained, setMarksObtained] = useState("");
+    // Extract student ID and optionally preselected subject ID from URL or state
+    const studentID = params.id || params.studentID;
+    const preselectedSubjectId = location.state?.subjectId;
+
+    // Component state
+    const [subjectId, setSubjectId] = useState(preselectedSubjectId || params.subjectID || "");
+    const [marksObtained, setMarksObtained] = useState(location.state?.currentMarks || "");
 
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
-    const [loader, setLoader] = useState(false)
+    const [loader, setLoader] = useState(false);
 
+    // Fetch student details when the component mounts or studentID changes
     useEffect(() => {
-        if (situation === "Student") {
-            setStudentID(params.id);
-            const stdID = params.id
-            dispatch(getUserDetails(stdID, "Student"));
-        }
-        else if (situation === "Subject") {
-            const { studentID, subjectID } = params
-            setStudentID(studentID);
+        if (studentID) {
             dispatch(getUserDetails(studentID, "Student"));
-            setChosenSubName(subjectID);
         }
-    }, [situation]);
+    }, [dispatch, studentID]);
 
+    // Fetch subject list once userDetails are available
     useEffect(() => {
-        if (userDetails && userDetails.sclassName && situation === "Student") {
+        if (userDetails && userDetails.sclassName) {
             dispatch(getSubjectList(userDetails.sclassName._id, "ClassSubjects"));
         }
     }, [dispatch, userDetails]);
 
-    const changeHandler = (event) => {
-        const selectedSubject = subjectsList.find(
-            (subject) => subject.subName === event.target.value
-        );
-        setSubjectName(selectedSubject.subName);
-        setChosenSubName(selectedSubject._id);
-    }
-
-    const fields = { subName: chosenSubName, marksObtained }
-
-    const submitHandler = (event) => {
-        event.preventDefault()
-        setLoader(true)
-        dispatch(updateStudentFields(studentID, fields, "UpdateExamResult"))
-    }
-
+    // Handle form submission result from Redux
     useEffect(() => {
         if (response) {
-            setLoader(false)
-            setShowPopup(true)
-            setMessage(response)
+            setLoader(false);
+            setShowPopup(true);
+            setMessage(response);
+        } else if (error) {
+            setLoader(false);
+            setShowPopup(true);
+            setMessage("Error occurred");
+        } else if (statestatus === "added") {
+            setLoader(false);
+            setShowPopup(true);
+            setMessage("Done Successfully");
         }
-        else if (error) {
-            setLoader(false)
-            setShowPopup(true)
-            setMessage("error")
-        }
-        else if (statestatus === "added") {
-            setLoader(false)
-            setShowPopup(true)
-            setMessage("Done Successfully")
-        }
-    }, [response, statestatus, error])
+    }, [response, statestatus, error]);
+    
+    // Handle subject selection change
+    const handleSubjectChange = (event) => {
+        setSubjectId(event.target.value);
+    };
+
+    // Submit handler for the form
+    const submitHandler = (event) => {
+        event.preventDefault();
+        setLoader(true);
+        const fields = { subName: subjectId, marksObtained };
+        dispatch(updateStudentFields(studentID, fields, "UpdateExamResult"));
+    };
+
+    // Find the subject name to display (used in "Subject" mode)
+    const subjectNameToDisplay = subjectsList.find(sub => sub._id === subjectId)?.subName;
 
     return (
         <>
-            {loading
-                ?
+            {loading ? (
+                // Show loading state while fetching user details
+                <div>Loading...</div>
+            ) : (
                 <>
-                    <div>Loading...</div>
-                </>
-                :
-                <>
-                    <Box
-                        sx={{
-                            flex: '1 1 auto',
-                            alignItems: 'center',
-                            display: 'flex',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                maxWidth: 550,
-                                px: 3,
-                                py: '100px',
-                                width: '100%'
-                            }}
-                        >
+                    <Box sx={{ flex: '1 1 auto', alignItems: 'center', display: 'flex', justifyContent: 'center' }}>
+                        <Box sx={{ maxWidth: 550, px: 3, py: '100px', width: '100%' }}>
                             <Stack spacing={1} sx={{ mb: 3 }}>
                                 <Typography variant="h4">
-                                    Student Name: {userDetails.name}
+                                    Student Name: {userDetails?.name}
                                 </Typography>
-                                {currentUser.teachSubject &&
-                                    <Typography variant="h4">
-                                        Subject Name: {currentUser.teachSubject?.subName}
+                                {situation === "Subject" && (
+                                    <Typography variant="h5">
+                                        Subject: {subjectNameToDisplay}
                                     </Typography>
-                                }
+                                )}
                             </Stack>
                             <form onSubmit={submitHandler}>
                                 <Stack spacing={3}>
-                                    {
-                                        situation === "Student" &&
-                                        <FormControl fullWidth>
-                                            <InputLabel id="demo-simple-select-label">
-                                                Select Subject
-                                            </InputLabel>
+                                    {/* Show subject selection if we are in "Student" mode */}
+                                    {situation === "Student" && (
+                                        <FormControl fullWidth required>
+                                            <InputLabel id="subject-select-label">Select Subject</InputLabel>
                                             <Select
-                                                labelId="demo-simple-select-label"
-                                                id="demo-simple-select"
-                                                value={subjectName}
-                                                label="Choose an option"
-                                                onChange={changeHandler} required
+                                                labelId="subject-select-label"
+                                                id="subject-select"
+                                                value={subjectId}
+                                                label="Select Subject"
+                                                onChange={handleSubjectChange}
                                             >
-                                                {subjectsList ?
-                                                    subjectsList.map((subject, index) => (
-                                                        <MenuItem key={index} value={subject.subName}>
+                                                {subjectsList ? (
+                                                    subjectsList.map((subject) => (
+                                                        <MenuItem key={subject._id} value={subject._id}>
                                                             {subject.subName}
                                                         </MenuItem>
                                                     ))
-                                                    :
-                                                    <MenuItem value="Select Subject">
-                                                        Add Subjects For Marks
-                                                    </MenuItem>
-                                                }
+                                                ) : (
+                                                    <MenuItem value="">No Subjects Available</MenuItem>
+                                                )}
                                             </Select>
                                         </FormControl>
-                                    }
-                                    <FormControl>
-                                        <TextField type="number" label='Enter marks'
-                                            value={marksObtained} required
+                                    )}
+                                    {/* Input for marks */}
+                                    <FormControl fullWidth>
+                                        <TextField
+                                            label="Enter marks"
+                                            type="number"
+                                            value={marksObtained}
                                             onChange={(e) => setMarksObtained(e.target.value)}
-                                            InputLabelProps={{
-                                                shrink: true,
-                                            }}
+                                            required
                                         />
                                     </FormControl>
                                 </Stack>
+                                {/* Submit button with loader */}
                                 <BlueButton
                                     fullWidth
                                     size="large"
@@ -171,11 +155,12 @@ const StudentExamMarks = ({ situation }) => {
                             </form>
                         </Box>
                     </Box>
+                    {/* Feedback popup */}
                     <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
                 </>
-            }
+            )}
         </>
-    )
-}
+    );
+};
 
-export default StudentExamMarks
+export default StudentExamMarks;
