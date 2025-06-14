@@ -1,143 +1,158 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getSubjectList } from '../../redux/sclassRelated/sclassHandle';
-import { BottomNavigation, BottomNavigationAction, Container, Paper, Table, TableBody, TableHead, Typography } from '@mui/material';
-import { getUserDetails } from '../../redux/userRelated/userHandle';
-import CustomBarChart from '../../components/CustomBarChart'
 
-import InsertChartIcon from '@mui/icons-material/InsertChart';
-import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+// Action creators for fetching user and subject data
+import { getUserDetails } from '../../redux/userRelated/userHandle';
+import { getSubjectList } from '../../redux/sclassRelated/sclassHandle';
+
+// UI components from MUI
+import {
+    Container, Paper, Typography, Box, Table, TableBody,
+    TableHead, List, ListItem, ListItemText, ListItemIcon, Divider,
+    ToggleButtonGroup, ToggleButton
+} from '@mui/material';
+
+// Custom bar chart component and styled table components
+import CustomBarChart from '../../components/CustomBarChart';
 import { StyledTableCell, StyledTableRow } from '../../components/styles';
 
+// MUI Icons
+import { Book, TableChart, InsertChart } from '@mui/icons-material';
+
+// Styled-components for customizing Paper
+import styled from 'styled-components';
+
+// Main functional component for displaying student subjects and marks
 const StudentSubjects = () => {
-
     const dispatch = useDispatch();
-    const { subjectsList, sclassDetails } = useSelector((state) => state.sclass);
-    const { userDetails, currentUser, loading, response, error } = useSelector((state) => state.user);
 
-    useEffect(() => {
-        dispatch(getUserDetails(currentUser._id, "Student"));
-    }, [dispatch, currentUser._id])
+    // Extract data from Redux store
+    const { subjectsList } = useSelector((state) => state.sclass);
+    const { userDetails, currentUser, loading, error } = useSelector((state) => state.user);
 
-    if (response) { console.log(response) }
-    else if (error) { console.log(error) }
-
+    // Local state for subject marks and current section view (table or chart)
     const [subjectMarks, setSubjectMarks] = useState([]);
     const [selectedSection, setSelectedSection] = useState('table');
 
+    // Fetch student user details on component mount
     useEffect(() => {
-        if (userDetails) {
+        dispatch(getUserDetails(currentUser._id, "Student"));
+    }, [dispatch, currentUser._id]);
+
+    // Once user details are available, fetch subjects and set marks
+    useEffect(() => {
+        if (userDetails && userDetails.sclassName?._id) {
+            dispatch(getSubjectList(userDetails.sclassName._id, "ClassSubjects"));
             setSubjectMarks(userDetails.examResult || []);
         }
-    }, [userDetails])
+    }, [dispatch, userDetails]);
 
-    useEffect(() => {
-        if (subjectMarks.length === 0) {
-            dispatch(getSubjectList(currentUser.sclassName._id, "ClassSubjects"));
-        }
-    }, [subjectMarks, dispatch, currentUser.sclassName._id]);
+    // Log any potential error from the Redux store
+    if (error) {
+        console.log(error);
+    }
 
+    // Handler to toggle between table view and chart view
     const handleSectionChange = (event, newSection) => {
-        setSelectedSection(newSection);
-    };
-
-    const renderTableSection = () => {
-        return (
-            <>
-                <Typography variant="h4" align="center" gutterBottom>
-                    Subject Marks
-                </Typography>
-                <Table>
-                    <TableHead>
-                        <StyledTableRow>
-                            <StyledTableCell>Subject</StyledTableCell>
-                            <StyledTableCell>Marks</StyledTableCell>
-                        </StyledTableRow>
-                    </TableHead>
-                    <TableBody>
-                        {subjectMarks.map((result, index) => {
-                            if (!result.subName || !result.marksObtained) {
-                                return null;
-                            }
-                            return (
-                                <StyledTableRow key={index}>
-                                    <StyledTableCell>{result.subName.subName}</StyledTableCell>
-                                    <StyledTableCell>{result.marksObtained}</StyledTableCell>
-                                </StyledTableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </>
-        );
-    };
-
-    const renderChartSection = () => {
-        return <CustomBarChart chartData={subjectMarks} dataKey="marksObtained" />;
-    };
-
-    const renderClassDetailsSection = () => {
-        return (
-            <Container>
-                <Typography variant="h4" align="center" gutterBottom>
-                    Class Details
-                </Typography>
-                <Typography variant="h5" gutterBottom>
-                    You are currently in Class {sclassDetails && sclassDetails.sclassName}
-                </Typography>
-                <Typography variant="h6" gutterBottom>
-                    And these are the subjects:
-                </Typography>
-                {subjectsList &&
-                    subjectsList.map((subject, index) => (
-                        <div key={index}>
-                            <Typography variant="subtitle1">
-                                {subject.subName} ({subject.subCode})
-                            </Typography>
-                        </div>
-                    ))}
-            </Container>
-        );
+        if (newSection !== null) {
+            setSelectedSection(newSection);
+        }
     };
 
     return (
-        <>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            {/* Show loading spinner/text while data is loading */}
             {loading ? (
                 <div>Loading...</div>
             ) : (
-                <div>
-                    {subjectMarks && Array.isArray(subjectMarks) && subjectMarks.length > 0
-                        ?
-                        (<>
-                            {selectedSection === 'table' && renderTableSection()}
-                            {selectedSection === 'chart' && renderChartSection()}
+                <>
+                    {/* Display list of subjects */}
+                    <StyledPaper elevation={4}>
+                        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                            Your Subjects
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                            These are all the subjects you are enrolled in for class {currentUser.sclassName?.sclassName}.
+                        </Typography>
+                        <Divider sx={{ mb: 2 }}/>
+                        <List>
+                            {(subjectsList || []).map((subject, index) => (
+                                <ListItem key={index}>
+                                    <ListItemIcon>
+                                        <Book />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={subject.subName}
+                                        secondary={`Code: ${subject.subCode}`}
+                                    />
+                                </ListItem>
+                            ))}
+                        </List>
+                    </StyledPaper>
 
-                            <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-                                <BottomNavigation value={selectedSection} onChange={handleSectionChange} showLabels>
-                                    <BottomNavigationAction
-                                        label="Table"
-                                        value="table"
-                                        icon={selectedSection === 'table' ? <TableChartIcon /> : <TableChartOutlinedIcon />}
-                                    />
-                                    <BottomNavigationAction
-                                        label="Chart"
-                                        value="chart"
-                                        icon={selectedSection === 'chart' ? <InsertChartIcon /> : <InsertChartOutlinedIcon />}
-                                    />
-                                </BottomNavigation>
-                            </Paper>
-                        </>)
-                        :
-                        (<>
-                            {renderClassDetailsSection()}
-                        </>)
-                    }
-                </div>
+                    {/* Conditionally render the marks section only if marks exist */}
+                    {subjectMarks && subjectMarks.length > 0 && (
+                        <StyledPaper elevation={4} sx={{ mt: 4 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                                    Your Marks
+                                </Typography>
+
+                                {/* Toggle buttons to switch between table and chart views */}
+                                <ToggleButtonGroup
+                                    value={selectedSection}
+                                    exclusive
+                                    onChange={handleSectionChange}
+                                    aria-label="view-toggle"
+                                >
+                                    <ToggleButton value="table" aria-label="table view"><TableChart /></ToggleButton>
+                                    <ToggleButton value="chart" aria-label="chart view"><InsertChart /></ToggleButton>
+                                </ToggleButtonGroup>
+                            </Box>
+                            <Divider sx={{ mb: 4 }} />
+
+                            {/* Render marks in table format if 'table' is selected */}
+                            {selectedSection === 'table' ? (
+                                <Table>
+                                    <TableHead>
+                                        <StyledTableRow>
+                                            <StyledTableCell>Subject</StyledTableCell>
+                                            <StyledTableCell>Marks</StyledTableCell>
+                                        </StyledTableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {subjectMarks.map((result, index) => {
+                                            // Skip entries with missing data
+                                            if (!result.subName || result.marksObtained === undefined) {
+                                                return null;
+                                            }
+                                            return (
+                                                <StyledTableRow key={index}>
+                                                    <StyledTableCell>{result.subName.subName}</StyledTableCell>
+                                                    <StyledTableCell>{result.marksObtained}</StyledTableCell>
+                                                </StyledTableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                // Render chart if 'chart' is selected
+                                <Box sx={{ height: '500px' }}>
+                                    <CustomBarChart chartData={subjectMarks} dataKey="marksObtained" />
+                                </Box>
+                            )}
+                        </StyledPaper>
+                    )}
+                </>
             )}
-        </>
+        </Container>
     );
 };
 
 export default StudentSubjects;
+
+// Custom styled Paper component with padding and rounded corners
+const StyledPaper = styled(Paper)`
+    padding: 32px;
+    border-radius: 16px;
+`;

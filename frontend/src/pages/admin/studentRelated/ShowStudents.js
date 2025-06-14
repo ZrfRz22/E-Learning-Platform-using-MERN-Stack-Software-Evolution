@@ -1,3 +1,4 @@
+// Import required modules and components from libraries and project files
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
@@ -13,7 +14,6 @@ import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
 import * as React from 'react';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
-// import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { KeyboardArrowUp, KeyboardArrowDown } from '@mui/icons-material';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Grow from '@mui/material/Grow';
@@ -23,79 +23,68 @@ import MenuList from '@mui/material/MenuList';
 import Popup from '../../../components/Popup';
 
 const ShowStudents = () => {
-
-    const navigate = useNavigate()
+    const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { studentsList, loading, error, response } = useSelector((state) => state.student);
-    const { currentUser } = useSelector(state => state.user)
 
+    // Access student and user state from Redux store
+    const { studentsList, loading, error, response } = useSelector((state) => state.student);
+    const { currentUser } = useSelector(state => state.user);
+
+    // Fetch all students when component mounts or when currentUser ID changes
     useEffect(() => {
         dispatch(getAllStudents(currentUser._id));
     }, [currentUser._id, dispatch]);
 
+    // Log any error to console
     if (error) {
         console.log(error);
     }
 
+    // States for popup message box
     const [showPopup, setShowPopup] = React.useState(false);
     const [message, setMessage] = React.useState("");
 
+    // Function to handle deletion of a user/student
     const deleteHandler = (deleteID, address) => {
-        //console.log(deleteID);
-        //console.log(address);
-        //setMessage("Sorry the delete function has been disabled for now.")
-        //setShowPopup(true)
+        dispatch(deleteUser(deleteID, address))
+            .then(() => {
+                dispatch(getAllStudents(currentUser._id));
+            });
+    };
 
-         dispatch(deleteUser(deleteID, address))
-             .then(() => {
-                 dispatch(getAllStudents(currentUser._id));
-             })
-    }
-
+    // Define the table columns for students
     const studentColumns = [
         { id: 'name', label: 'Name', minWidth: 170 },
         { id: 'rollNum', label: 'Roll Number', minWidth: 100 },
         { id: 'sclassName', label: 'Class', minWidth: 170 },
-    ]
+    ];
 
-    // Map through the list of students to prepare structured data for a UI table or grid
+    // Convert student data into a format suitable for rendering in table
     const studentRows = studentsList && studentsList.length > 0 && studentsList.map((student) => {
-        // Construct the full image URL using the base URL and the student's profile picture filename
         const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
         
         return {
-            // Display student's name alongside their profile picture using a horizontal layout
             name: (
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar 
-                        src={imageUrl}     // Load student profile picture
-                        sx={{ mr: 2 }}     // Add right margin for spacing between avatar and name
-                    />
-                    {student.name}         
+                    <Avatar src={imageUrl} sx={{ mr: 2 }} />
+                    {student.name}
                 </Box>
             ),
-
-            // Student's roll number (for display or sorting)
             rollNum: student.rollNum,
-
-            // Display the name of the class the student belongs to
             sclassName: student.sclassName.sclassName,
-
-            // Unique ID used for keying or referencing the student
             id: student._id,
         };
     });
 
-
+    // Component for action buttons for each student row
     const StudentButtonHaver = ({ row }) => {
         const options = ['Take Attendance', 'Provide Marks'];
-
         const [open, setOpen] = React.useState(false);
         const anchorRef = React.useRef(null);
         const [selectedIndex, setSelectedIndex] = React.useState(0);
 
+        // Handle main button click based on selected dropdown option
         const handleClick = () => {
-            console.info(`You clicked ${options[selectedIndex]}`);
             if (selectedIndex === 0) {
                 handleAttendance();
             } else if (selectedIndex === 1) {
@@ -104,10 +93,11 @@ const ShowStudents = () => {
         };
 
         const handleAttendance = () => {
-            navigate("/Admin/students/student/attendance/" + row.id)
-        }
+            navigate("/Admin/students/student/attendance/" + row.id);
+        };
+
         const handleMarks = () => {
-            navigate("/Admin/students/student/marks/" + row.id)
+            navigate("/Admin/students/student/marks/" + row.id);
         };
 
         const handleMenuItemClick = (event, index) => {
@@ -123,18 +113,22 @@ const ShowStudents = () => {
             if (anchorRef.current && anchorRef.current.contains(event.target)) {
                 return;
             }
-
             setOpen(false);
         };
+
         return (
             <>
+                {/* Delete student */}
                 <IconButton onClick={() => deleteHandler(row.id, "Student")}>
                     <PersonRemoveIcon color="error" />
                 </IconButton>
-                <BlueButton variant="contained"
-                    onClick={() => navigate("/Admin/students/student/" + row.id)}>
+
+                {/* View student details */}
+                <BlueButton variant="contained" onClick={() => navigate("/Admin/students/student/" + row.id)}>
                     View
                 </BlueButton>
+
+                {/* Dropdown menu for additional actions */}
                 <React.Fragment>
                     <ButtonGroup variant="contained" ref={anchorRef} aria-label="split button">
                         <Button onClick={handleClick}>{options[selectedIndex]}</Button>
@@ -149,10 +143,10 @@ const ShowStudents = () => {
                             {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                         </BlackButton>
                     </ButtonGroup>
+
+                    {/* Dropdown options */}
                     <Popper
-                        sx={{
-                            zIndex: 1,
-                        }}
+                        sx={{ zIndex: 1 }}
                         open={open}
                         anchorEl={anchorRef.current}
                         role={undefined}
@@ -163,8 +157,7 @@ const ShowStudents = () => {
                             <Grow
                                 {...TransitionProps}
                                 style={{
-                                    transformOrigin:
-                                        placement === 'bottom' ? 'center top' : 'center bottom',
+                                    transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom',
                                 }}
                             >
                                 <Paper>
@@ -191,39 +184,47 @@ const ShowStudents = () => {
         );
     };
 
+    // Floating action button (SpeedDial) actions
     const actions = [
         {
-            icon: <PersonAddAlt1Icon color="primary" />, name: 'Add New Student',
+            icon: <PersonAddAlt1Icon color="primary" />,
+            name: 'Add New Student',
             action: () => navigate("/Admin/addstudents")
         },
         {
-            icon: <PersonRemoveIcon color="error" />, name: 'Delete All Students',
+            icon: <PersonRemoveIcon color="error" />,
+            name: 'Delete All Students',
             action: () => deleteHandler(currentUser._id, "Students")
         },
     ];
 
     return (
         <>
-            {loading ?
+            {/* Show loading spinner */}
+            {loading ? (
                 <div>Loading...</div>
-                :
+            ) : (
                 <>
-                    {response ?
+                    {/* If response exists, show Add Students button */}
+                    {response ? (
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                             <GreenButton variant="contained" onClick={() => navigate("/Admin/addstudents")}>
                                 Add Students
                             </GreenButton>
                         </Box>
-                        :
+                    ) : (
+                        // Else show the table of students with speed dial
                         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
                             {Array.isArray(studentsList) && studentsList.length > 0 &&
                                 <TableTemplate buttonHaver={StudentButtonHaver} columns={studentColumns} rows={studentRows} />
                             }
                             <SpeedDialTemplate actions={actions} />
                         </Paper>
-                    }
+                    )}
                 </>
-            }
+            )}
+
+            {/* Show popup for alerts or info */}
             <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
         </>
     );

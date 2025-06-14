@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Container,
@@ -12,57 +13,41 @@ import {
     List,
     ListItem,
     ListItemText,
-    Chip,
+    ListItemButton,
     CircularProgress
 } from '@mui/material';
 import { Edit } from '@mui/icons-material';
 
-// Import Redux actions for updating profile picture and fetching data
+// Redux actions
 import { updateUserProfilePic } from '../../redux/userRelated/userHandle';
-import { getAllSclasses, getSubjectList } from '../../redux/sclassRelated/sclassHandle';
+import { getAllSclasses } from '../../redux/sclassRelated/sclassHandle';
 
 const AdminProfile = () => {
     const dispatch = useDispatch();
-    const fileInputRef = useRef(null);
+    const navigate = useNavigate();
+    const fileInputRef = useRef(null); // Ref for file input element
 
-    // Get current user from Redux state
     const { currentUser } = useSelector((state) => state.user);
+    const { sclassesList, loading: sclassLoading } = useSelector((state) => state.sclass);
 
-    // Get class and subject list from Redux state
-    const { sclassesList, subjectsList, loading: sclassLoading } = useSelector((state) => state.sclass);
-
-    // Fetch all classes assigned to the current admin
+    // Fetch classes managed by the current admin when component mounts
     useEffect(() => {
         if (currentUser?._id) {
             dispatch(getAllSclasses(currentUser._id, "Sclass"));
         }
     }, [dispatch, currentUser]);
 
-    // Once class list is fetched, get subjects for each class
-    useEffect(() => {
-        const fetchSubjectsForClasses = async () => {
-            const fetches = sclassesList.map((classItem) =>
-                dispatch(getSubjectList(classItem._id, "ClassSubjects"))
-            );
-            await Promise.all(fetches);
-        };
-
-        if (sclassesList.length > 0) {
-            fetchSubjectsForClasses();
-        }
-    }, [dispatch, sclassesList]);
-
-    // Construct profile picture URL if available
+    // Build the profile image URL (or fallback to null)
     const imageUrl = currentUser.profilePic
         ? `${process.env.REACT_APP_BASE_URL}/uploads/admin/${currentUser.profilePic}`
         : null;
 
-    // Trigger file input when edit overlay is clicked
+    // Trigger the hidden file input on avatar click
     const handleEditButtonClick = () => {
         fileInputRef.current.click();
     };
 
-    // Handle file upload and dispatch action to update profile picture
+    // Handle profile picture change and dispatch Redux action
     const handleFileChange = async (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -72,7 +57,7 @@ const AdminProfile = () => {
         }
     };
 
-    // Component to display a labeled detail item
+    // Reusable component to display profile detail items
     const DetailItem = ({ label, value }) => (
         <>
             <ListItem>
@@ -91,7 +76,7 @@ const AdminProfile = () => {
         <Container maxWidth="lg" sx={{ mt: 4 }}>
             <StyledPaper elevation={4}>
                 <Grid container spacing={4}>
-                    {/* Profile picture and user information section */}
+                    {/* Profile Picture and Name Section */}
                     <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <input
                             type="file"
@@ -119,7 +104,7 @@ const AdminProfile = () => {
                         </Box>
                     </Grid>
 
-                    {/* Admin details and managed classes/subjects section */}
+                    {/* Profile Details and Managed Classes Section */}
                     <Grid item xs={12} md={8}>
                         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
                             Admin Details
@@ -130,54 +115,38 @@ const AdminProfile = () => {
                             <DetailItem label="College" value={currentUser.collegeName} />
                         </List>
 
-                        {/* Display list of managed classes and subjects */}
+                        {/* Classes Managed by Admin */}
                         <Box mt={4}>
                             <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-                                Managed Classes & Subjects
+                                Managed Classes
                             </Typography>
                             {sclassLoading ? (
-                                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                                    <CircularProgress />
-                                </Box>
+                                <CircularProgress />
                             ) : (
-                                <List disablePadding>
-                                    {sclassesList && sclassesList.length > 0 ? (
-                                        sclassesList.map((classItem, index) => {
-                                            // Filter subjects that belong to this class
-                                            const subjectsForThisClass = subjectsList.filter(
-                                                (subject) => subject.sclassName === classItem._id
-                                            );
-                                            return (
-                                                <React.Fragment key={index}>
-                                                    <ListItem>
+                                <Paper sx={{ mt: 2 }}>
+                                    <List disablePadding>
+                                        {sclassesList && sclassesList.length > 0 ? (
+                                            sclassesList.map((classItem, index) => (
+                                                <React.Fragment key={classItem._id}>
+                                                    <ListItemButton 
+                                                        onClick={() => navigate(`/Admin/classes/class/${classItem._id}`)}
+                                                        sx={{ mt: 1 }}
+                                                    >
                                                         <ListItemText
                                                             primary={classItem.sclassName}
                                                             primaryTypographyProps={{ fontWeight: 'bold' }}
-                                                            secondary={
-                                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, pt: 1 }}>
-                                                                    {subjectsForThisClass.length > 0 ? (
-                                                                        subjectsForThisClass.map((subject, i) => (
-                                                                            <Chip key={i} label={subject.subName} size="small" />
-                                                                        ))
-                                                                    ) : (
-                                                                        <Typography variant="body2" color="textSecondary">
-                                                                            No subjects assigned.
-                                                                        </Typography>
-                                                                    )}
-                                                                </Box>
-                                                            }
                                                         />
-                                                    </ListItem>
-                                                    {index < sclassesList.length - 1 && <Divider component="li" />}
+                                                    </ListItemButton>
+                                                    {index < sclassesList.length - 1 && <Divider />}
                                                 </React.Fragment>
-                                            )
-                                        })
-                                    ) : (
-                                        <ListItem>
-                                            <ListItemText primary="No classes found." />
-                                        </ListItem>
-                                    )}
-                                </List>
+                                            ))
+                                        ) : (
+                                            <ListItem>
+                                                <ListItemText primary="No classes found." />
+                                            </ListItem>
+                                        )}
+                                    </List>
+                                </Paper>
                             )}
                         </Box>
                     </Grid>
@@ -189,7 +158,9 @@ const AdminProfile = () => {
 
 export default AdminProfile;
 
-// Styled Paper component for the main container
+// Styled Components
+
+// Paper container styling
 const StyledPaper = styled(Paper)`
     margin-top: 32px;
     padding: 40px;
@@ -197,7 +168,7 @@ const StyledPaper = styled(Paper)`
     background-color: white;
 `;
 
-// Container for the profile picture and edit overlay
+// Profile picture container with hover overlay
 const ProfilePictureContainer = styled.div`
     position: relative;
     cursor: pointer;
@@ -213,7 +184,7 @@ const ProfilePictureContainer = styled.div`
     }
 `;
 
-// Overlay shown on hover to indicate edit action
+// Overlay to indicate profile picture can be changed
 const EditOverlay = styled.div`
     position: absolute;
     top: 0;
@@ -230,7 +201,7 @@ const EditOverlay = styled.div`
     transition: opacity 0.3s ease;
 `;
 
-// Avatar styling for consistent size and appearance
+// Avatar styling
 const StyledAvatar = styled(Avatar)`
     width: 200px !important;
     height: 200px !important;

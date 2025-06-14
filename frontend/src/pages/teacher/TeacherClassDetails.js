@@ -1,191 +1,159 @@
-import { useEffect } from "react";
-import * as React from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
 import { getClassStudents } from "../../redux/sclassRelated/sclassHandle";
-import { Avatar, Paper, Box, Typography, ButtonGroup, Button, Popper, Grow, ClickAwayListener, MenuList, MenuItem } from '@mui/material';
-import { BlackButton, BlueButton} from "../../components/buttonStyles";
+import { Avatar, Paper, Box, Typography, Button, Container, Grid } from '@mui/material';
+import { BlueButton, PurpleButton } from "../../components/buttonStyles";
 import TableTemplate from "../../components/TableTemplate";
-import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
+import styled from "styled-components";
 
 const TeacherClassDetails = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
     const dispatch = useDispatch();
+
+    // Extracting necessary data from the Redux store
     const { sclassStudents, loading, error, getresponse } = useSelector((state) => state.sclass);
-
     const { currentUser } = useSelector((state) => state.user);
-    const classID = currentUser.teachSclass?._id
-    const subjectID = currentUser.teachSubject?._id
 
+    // Getting class ID and subject ID from the current user's assigned class and subject
+    const classID = currentUser.teachSclass?._id;
+    const subjectID = currentUser.teachSubject?._id;
+
+    // Fetch students when the component mounts or when classID changes
     useEffect(() => {
-        dispatch(getClassStudents(classID));
-    }, [dispatch, classID])
+        if (classID) {
+            dispatch(getClassStudents(classID));
+        }
+    }, [dispatch, classID]);
 
+    // Log error if there's any issue with fetching students
     if (error) {
-        console.log(error)
+        console.log(error);
     }
 
+    // Define the column structure for the student table
     const studentColumns = [
         { id: 'name', label: 'Name', minWidth: 170 },
         { id: 'rollNum', label: 'Roll Number', minWidth: 100 },
-    ]
+    ];
 
-    // Map through the list of students to format data for table rows
-    const studentRows = sclassStudents.map((student) => {
-        // Construct the full image URL for each student's profile picture
+    // Format each student row for the table, including avatar images
+    const studentRows = (sclassStudents || []).map((student) => {
         const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
-
         return {
-            // Render the name with avatar and name side-by-side
             name: (
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Avatar src={imageUrl} alt={student.name} sx={{ mr: 2 }} />
                     {student.name}
                 </Box>
             ),
-            // Student's roll number
             rollNum: student.rollNum,
-
-            // Unique ID used for table row key or operations
-            id: student._id,
+            id: student._id, // Needed for dynamic routing and actions
         };
     });
 
+    // Buttons for each student: View details, View attendance, View marks
     const StudentsButtonHaver = ({ row }) => {
-        const options = ['Take Attendance', 'Provide Marks'];
-
-        const [open, setOpen] = React.useState(false);
-        const anchorRef = React.useRef(null);
-        const [selectedIndex, setSelectedIndex] = React.useState(0);
-
-        const handleClick = () => {
-            console.info(`You clicked ${options[selectedIndex]}`);
-            if (selectedIndex === 0) {
-                handleAttendance();
-            } else if (selectedIndex === 1) {
-                handleMarks();
-            }
-        };
-
-        const handleAttendance = () => {
-            navigate(`/Teacher/class/student/attendance/${row.id}/${subjectID}`)
-        }
-        const handleMarks = () => {
-            navigate(`/Teacher/class/student/marks/${row.id}/${subjectID}`)
-        };
-
-        const handleMenuItemClick = (event, index) => {
-            setSelectedIndex(index);
-            setOpen(false);
-        };
-
-        const handleToggle = () => {
-            setOpen((prevOpen) => !prevOpen);
-        };
-
-        const handleClose = (event) => {
-            if (anchorRef.current && anchorRef.current.contains(event.target)) {
-                return;
-            }
-
-            setOpen(false);
-        };
         return (
-            <>
+            <ButtonContainer>
                 <BlueButton
                     variant="contained"
-                    onClick={() =>
-                        navigate("/Teacher/class/student/" + row.id)
-                    }
+                    onClick={() => navigate("/Teacher/class/student/" + row.id)}
                 >
                     View
                 </BlueButton>
-                <React.Fragment>
-                    <ButtonGroup variant="contained" ref={anchorRef} aria-label="split button">
-                        <Button onClick={handleClick}>{options[selectedIndex]}</Button>
-                        <BlackButton
-                            size="small"
-                            aria-controls={open ? 'split-button-menu' : undefined}
-                            aria-expanded={open ? 'true' : undefined}
-                            aria-label="select merge strategy"
-                            aria-haspopup="menu"
-                            onClick={handleToggle}
-                        >
-                            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                        </BlackButton>
-                    </ButtonGroup>
-                    <Popper
-                        sx={{
-                            zIndex: 1,
-                        }}
-                        open={open}
-                        anchorEl={anchorRef.current}
-                        role={undefined}
-                        transition
-                        disablePortal
-                    >
-                        {({ TransitionProps, placement }) => (
-                            <Grow
-                                {...TransitionProps}
-                                style={{
-                                    transformOrigin:
-                                        placement === 'bottom' ? 'center top' : 'center bottom',
-                                }}
-                            >
-                                <Paper>
-                                    <ClickAwayListener onClickAway={handleClose}>
-                                        <MenuList id="split-button-menu" autoFocusItem>
-                                            {options.map((option, index) => (
-                                                <MenuItem
-                                                    key={option}
-                                                    disabled={index === 2}
-                                                    selected={index === selectedIndex}
-                                                    onClick={(event) => handleMenuItemClick(event, index)}
-                                                >
-                                                    {option}
-                                                </MenuItem>
-                                            ))}
-                                        </MenuList>
-                                    </ClickAwayListener>
-                                </Paper>
-                            </Grow>
-                        )}
-                    </Popper>
-                </React.Fragment>
-            </>
+                <PurpleButton
+                    variant="contained"
+                    onClick={() => navigate(`/Teacher/class/student/attendance/${row.id}/${subjectID}`)}
+                >
+                    Attendance
+                </PurpleButton>
+                <BlueButton
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => navigate(`/Teacher/class/student/marks/${row.id}/${subjectID}`)}
+                >
+                    Marks
+                </BlueButton>
+            </ButtonContainer>
         );
     };
 
     return (
         <>
+            {/* Show loading indicator if students are still being fetched */}
             {loading ? (
                 <div>Loading...</div>
             ) : (
-                <>
-                    <Typography variant="h4" align="center" gutterBottom>
-                        Class Details
-                    </Typography>
-                    {getresponse ? (
-                        <>
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                                No Students Found
-                            </Box>
-                        </>
-                    ) : (
-                        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-                            <Typography variant="h5" gutterBottom>
-                                Students List:
-                            </Typography>
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                    {/* Class Details Header */}
+                    <StyledPaper elevation={3}>
+                        <Grid container spacing={2} alignItems="center">
+                            <Grid item xs>
+                                <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+                                    {currentUser.teachSubject?.subName}
+                                </Typography>
+                                <Typography variant="subtitle1" color="textSecondary">
+                                    {currentUser.teachSclass?.sclassName}
+                                </Typography>
+                            </Grid>
+                            <Grid item>
+                                {/* Display total number of students */}
+                                <StatBox>
+                                    <Typography variant="h4">{(sclassStudents || []).length}</Typography>
+                                    <Typography color="textSecondary">Total Students</Typography>
+                                </StatBox>
+                            </Grid>
+                        </Grid>
+                    </StyledPaper>
 
-                            {Array.isArray(sclassStudents) && sclassStudents.length > 0 &&
-                                <TableTemplate buttonHaver={StudentsButtonHaver} columns={studentColumns} rows={studentRows} />
-                            }
-                        </Paper>
-                    )}
-                </>
+                    {/* Student List Table Section */}
+                    <Paper sx={{ width: '100%', overflow: 'hidden', p: 3, borderRadius: '12px' }} elevation={3}>
+                        {getresponse ? (
+                            // Display message if no students found
+                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 3 }}>
+                                <Typography variant="h6">No Students Found</Typography>
+                            </Box>
+                        ) : (
+                            <>
+                                <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
+                                    Students List
+                                </Typography>
+                                {/* Show table only if there are students */}
+                                {Array.isArray(sclassStudents) && sclassStudents.length > 0 &&
+                                    <TableTemplate buttonHaver={StudentsButtonHaver} columns={studentColumns} rows={studentRows} />
+                                }
+                            </>
+                        )}
+                    </Paper>
+                </Container>
             )}
         </>
     );
 };
 
 export default TeacherClassDetails;
+
+// --- Styled Components ---
+
+// Style for the top card displaying subject and class info
+const StyledPaper = styled(Paper)`
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+`;
+
+// Box style for the total student count
+const StatBox = styled(Box)`
+    padding: 16px;
+    text-align: center;
+`;
+
+// Layout for the action buttons beside each student row
+const ButtonContainer = styled(Box)`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+`;

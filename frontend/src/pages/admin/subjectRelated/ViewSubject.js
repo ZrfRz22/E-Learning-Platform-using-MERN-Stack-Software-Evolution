@@ -1,239 +1,198 @@
-import React, { useEffect, useState } from 'react'
-import { getClassStudents, getSubjectDetails } from '../../../redux/sclassRelated/sclassHandle';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Avatar, Box, Tab, Container, Typography, BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getClassStudents, getSubjectDetails } from '../../../redux/sclassRelated/sclassHandle';
+import {
+    Container, Typography, Box, Avatar, Paper, Grid, Divider
+} from '@mui/material';
 import { BlueButton, GreenButton, PurpleButton } from '../../../components/buttonStyles';
 import TableTemplate from '../../../components/TableTemplate';
-import TabContext from '@mui/lab/TabContext';
-import TabList from '@mui/lab/TabList';
-import TabPanel from '@mui/lab/TabPanel';
-
-import InsertChartIcon from '@mui/icons-material/InsertChart';
-import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import styled from 'styled-components';
 
 const ViewSubject = () => {
-  const navigate = useNavigate()
-  const params = useParams()
-  const dispatch = useDispatch();
-  const { subloading, subjectDetails, sclassStudents, getresponse, error } = useSelector((state) => state.sclass);
+    const navigate = useNavigate();
+    const params = useParams();
+    const dispatch = useDispatch();
 
-  const { classID, subjectID } = params
+    // Destructuring state from Redux
+    const { subloading, subjectDetails, sclassStudents, getresponse, error } = useSelector((state) => state.sclass);
 
-  useEffect(() => {
-    dispatch(getSubjectDetails(subjectID, "Subject"));
-    dispatch(getClassStudents(classID));
-  }, [dispatch, subjectID, classID]);
+    // Getting subject and class IDs from the URL params
+    const { classID, subjectID } = params;
 
-  if (error) {
-    console.log(error)
-  }
+    // On component mount, fetch subject and student details
+    useEffect(() => {
+        dispatch(getSubjectDetails(subjectID, "Subject"));
+        dispatch(getClassStudents(classID));
+    }, [dispatch, subjectID, classID]);
 
-  const [value, setValue] = useState('1');
+    // Log any error to the console
+    if (error) {
+        console.log(error);
+    }
 
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
-  };
+    // Define columns for student table
+    const studentColumns = [
+        { id: 'rollNum', label: 'Roll No.', minWidth: 100 },
+        { id: 'name', label: 'Name', minWidth: 220 },
+    ];
 
-  const [selectedSection, setSelectedSection] = useState('attendance');
-  const handleSectionChange = (event, newSection) => {
-    setSelectedSection(newSection);
-  };
-
-  const studentColumns = [
-    { id: 'rollNum', label: 'Roll No.', minWidth: 100 },
-    { id: 'name', label: 'Name', minWidth: 170 },
-  ]
-
-  const studentRows = sclassStudents.map((student) => {
-      // Construct full URL for student's profile picture
-      const imageUrl = `${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`;
-      
-      return {
-          // Display avatar alongside student name using a flex container
-          name: (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Avatar 
-                      src={imageUrl} 
-                      // Adds spacing between avatar and name
-                      sx={{ mr: 2 }} 
-                  />
-                  {student.name}
-              </Box>
-          ),
-          rollNum: student.rollNum,
-          sclassName: student.sclassName.sclassName,
-          id: student._id,
-      };
-  });
-
-
-  const StudentsAttendanceButtonHaver = ({ row }) => {
-    return (
-      <>
-        <BlueButton
-          variant="contained"
-          onClick={() => navigate("/Admin/students/student/" + row.id)}
-        >
-          View
-        </BlueButton>
-        <PurpleButton
-          variant="contained"
-          onClick={() =>
-            navigate(`/Admin/subject/student/attendance/${row.id}/${subjectID}`)
-          }
-        >
-          Take Attendance
-        </PurpleButton>
-      </>
-    );
-  };
-
-  const StudentsMarksButtonHaver = ({ row }) => {
-    return (
-      <>
-        <BlueButton
-          variant="contained"
-          onClick={() => navigate("/Admin/students/student/" + row.id)}
-        >
-          View
-        </BlueButton>
-        <PurpleButton variant="contained"
-          onClick={() => navigate(`/Admin/subject/student/marks/${row.id}/${subjectID}`)}>
-          Provide Marks
-        </PurpleButton>
-      </>
-    );
-  };
-
-  const SubjectStudentsSection = () => {
-    return (
-      <>
-        {getresponse ? (
-          <>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <GreenButton
-                variant="contained"
-                onClick={() => navigate("/Admin/class/addstudents/" + classID)}
-              >
-                Add Students
-              </GreenButton>
+    // Map student data into table row format
+    const studentRows = (sclassStudents || []).map((student) => ({
+        rollNum: student.rollNum,
+        name: (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Avatar src={`${process.env.REACT_APP_BASE_URL}/uploads/student/${student.profilePic}`} sx={{ mr: 2 }} />
+                {student.name}
             </Box>
-          </>
-        ) : (
-          <>
-            <Typography variant="h5" gutterBottom>
-              Students List:
-            </Typography>
+        ),
+        id: student._id,
+    }));
 
-            {selectedSection === 'attendance' &&
-              <TableTemplate buttonHaver={StudentsAttendanceButtonHaver} columns={studentColumns} rows={studentRows} />
-            }
-            {selectedSection === 'marks' &&
-              <TableTemplate buttonHaver={StudentsMarksButtonHaver} columns={studentColumns} rows={studentRows} />
-            }
-
-            <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-              <BottomNavigation value={selectedSection} onChange={handleSectionChange} showLabels>
-                <BottomNavigationAction
-                  label="Attendance"
-                  value="attendance"
-                  icon={selectedSection === 'attendance' ? <TableChartIcon /> : <TableChartOutlinedIcon />}
-                />
-                <BottomNavigationAction
-                  label="Marks"
-                  value="marks"
-                  icon={selectedSection === 'marks' ? <InsertChartIcon /> : <InsertChartOutlinedIcon />}
-                />
-              </BottomNavigation>
-            </Paper>
-
-          </>
-        )}
-      </>
-    )
-  }
-
-  const SubjectDetailsSection = () => {
-    const numberOfStudents = sclassStudents.length;
-
-    return (
-      <>
-        <Typography variant="h4" align="center" gutterBottom>
-          Subject Details
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Subject Name : {subjectDetails && subjectDetails.subName}
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Subject Code : {subjectDetails && subjectDetails.subCode}
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Subject Sessions : {subjectDetails && subjectDetails.sessions}
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Number of Students: {numberOfStudents}
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Class Name : {subjectDetails && subjectDetails.sclassName && subjectDetails.sclassName.sclassName}
-        </Typography>
-        {subjectDetails && subjectDetails.teacher ? (
-            // Display the teacher's name and profile picture if a teacher is assigned
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
-                    Teacher: {subjectDetails.teacher.name}
-                </Typography>
-                <Avatar 
-                    // Load teacher's profile picture using dynamic path
-                    src={`${process.env.REACT_APP_BASE_URL}/uploads/teacher/${subjectDetails.teacher.profilePic}`} 
-                    // Small avatar with left margin for spacing
-                    sx={{ width: 32, height: 32, ml: 2 }} 
-                /> 
-            </Box>
-        ) : (
-            // If no teacher is assigned, show button to add one
-            <GreenButton
-                variant="contained"
-                onClick={() => navigate("/Admin/teachers/addteacher/" + subjectDetails._id)}
+    // Action buttons for each student row in the table
+    const StudentActionButtons = ({ row }) => (
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+            <BlueButton
+              variant="contained"
+              onClick={() => navigate("/Admin/students/student/" + row.id)}
             >
-                Add Subject Teacher
-            </GreenButton>
-        )}
-
-      </>
+              View
+            </BlueButton>
+            <PurpleButton
+                variant="contained"
+                onClick={() => navigate(`/Admin/subject/student/attendance/${row.id}/${subjectID}`)}
+            >
+                Attendance
+            </PurpleButton>
+            <BlueButton
+                variant="contained"
+                onClick={() => navigate(`/Admin/subject/student/marks/${row.id}/${subjectID}`)}
+            >
+                Marks
+            </BlueButton>
+        </Box>
     );
-  }
 
-  return (
-    <>
-      {subloading ?
-        < div > Loading...</div >
-        :
+    return (
         <>
-          <Box sx={{ width: '100%', typography: 'body1', }} >
-            <TabContext value={value}>
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <TabList onChange={handleChange} sx={{ position: 'fixed', width: '100%', bgcolor: 'background.paper', zIndex: 1 }}>
-                  <Tab label="Details" value="1" />
-                  <Tab label="Students" value="2" />
-                </TabList>
-              </Box>
-              <Container sx={{ marginTop: "3rem", marginBottom: "4rem" }}>
-                <TabPanel value="1">
-                  <SubjectDetailsSection />
-                </TabPanel>
-                <TabPanel value="2">
-                  <SubjectStudentsSection />
-                </TabPanel>
-              </Container>
-            </TabContext>
-          </Box>
-        </>
-      }
-    </>
-  )
-}
+            {/* Show loading message while subject data is being fetched */}
+            {subloading ? (
+                <div>Loading...</div>
+            ) : (
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                    {/* SUBJECT HEADER SECTION */}
+                    <StyledPaper elevation={3}>
+                        <Grid container spacing={2} alignItems="center">
+                            <Grid item xs>
+                                <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+                                    {subjectDetails?.subName}
+                                </Typography>
+                                <Typography color="textSecondary">
+                                    Subject Code: {subjectDetails?.subCode}
+                                </Typography>
+                            </Grid>
+                            <Grid item>
+                                <Grid container spacing={4} alignItems="center">
+                                    {/* Total sessions info */}
+                                    <Grid item>
+                                        <StatBox>
+                                            <Typography variant="h5">{subjectDetails?.sessions}</Typography>
+                                            <Typography color="textSecondary">Total Sessions</Typography>
+                                        </StatBox>
+                                    </Grid>
 
-export default ViewSubject
+                                    {/* Number of students info */}
+                                    <Grid item>
+                                        <StatBox>
+                                            <Typography variant="h5">{(sclassStudents || []).length}</Typography>
+                                            <Typography color="textSecondary">Students</Typography>
+                                        </StatBox>
+                                    </Grid>
+
+                                    {/* Display teacher avatar and name or Add Teacher button */}
+                                    <Grid item>
+                                        <StatBox>
+                                            {subjectDetails?.teacher ? (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                                    <Avatar
+                                                        sx={{ width: 56, height: 56 }}
+                                                        src={`${process.env.REACT_APP_BASE_URL}/uploads/teacher/${subjectDetails.teacher.profilePic}`}
+                                                    />
+                                                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                                        {subjectDetails.teacher.name}
+                                                    </Typography>
+                                                </Box>
+                                            ) : (
+                                                <GreenButton
+                                                    variant="contained"
+                                                    onClick={() => navigate("/Admin/teachers/addteacher/" + subjectDetails._id)}
+                                                >
+                                                    Add Teacher
+                                                </GreenButton>
+                                            )}
+                                        </StatBox>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </StyledPaper>
+
+                    {/* STUDENT LIST SECTION */}
+                    <SectionPaper elevation={3}>
+                        <SectionHeader>
+                            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Enrolled Students</Typography>
+                            <GreenButton
+                                variant="contained"
+                                onClick={() => navigate("/Admin/class/addstudents/" + classID)}
+                            >
+                                Add Students
+                            </GreenButton>
+                        </SectionHeader>
+                        <Divider />
+
+                        {/* Show message if no students found */}
+                        {getresponse ? (
+                            <Box sx={{ p: 2 }}>No students found</Box>
+                        ) : (
+                            // Student data table with action buttons
+                            <TableTemplate buttonHaver={StudentActionButtons} columns={studentColumns} rows={studentRows} />
+                        )}
+                    </SectionPaper>
+                </Container>
+            )}
+        </>
+    );
+};
+
+export default ViewSubject;
+
+// --- STYLED COMPONENTS ---
+
+// Styled wrapper for the header section
+const StyledPaper = styled(Paper)`
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+`;
+
+// Styled wrapper for each section like student list
+const SectionPaper = styled(Paper)`
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+`;
+
+// Flex container for section headers with buttons
+const SectionHeader = styled(Box)`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+`;
+
+// Box component for displaying statistics (sessions, students, etc.)
+const StatBox = styled(Box)`
+    padding: 16px;
+    text-align: center;
+    min-width: 120px;
+`;
