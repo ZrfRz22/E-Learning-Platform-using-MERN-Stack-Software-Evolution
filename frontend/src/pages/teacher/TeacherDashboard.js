@@ -18,7 +18,6 @@ import { AppBar, Drawer } from '../../components/styles';
 import StudentAttendance from '../admin/studentRelated/StudentAttendance';
 
 import TeacherClassDetails from './TeacherClassDetails';
-import TeacherComplain from './TeacherComplain';
 import TeacherHomePage from './TeacherHomePage';
 import TeacherProfile from './TeacherProfile';
 import TeacherViewStudent from './TeacherViewStudent';
@@ -78,8 +77,6 @@ const TeacherDashboard = () => {
                         <Route path='*' element={<Navigate to="/" />} />
                         <Route path="/Teacher/dashboard" element={<TeacherHomePage />} />
                         <Route path="/Teacher/profile" element={<TeacherProfile />} />
-
-                        <Route path="/Teacher/complain" element={<TeacherComplain />} />
 
                         <Route path="/Teacher/class" element={<TeacherClassDetails />} />
                         <Route path="/Teacher/class/student/:id" element={<TeacherViewStudent />} />

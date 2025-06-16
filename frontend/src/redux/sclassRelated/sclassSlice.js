@@ -73,21 +73,38 @@ const sclassSlice = createSlice({
             state.subjectsList = [];
             state.sclassesList = [];
         },
+        // Reducer to handle successful fetching of teachers
         getTeachersSuccess: (state, action) => {
-            state.teachersList = action.payload; // Updated to match
+            // Update the teachersList with the data received from the API (in action.payload)
+            state.teachersList = action.payload;
+
+            // Set loading to false since the async request has completed
             state.loading = false;
+
+            // Clear any previous errors
             state.error = null;
         },
+
+        // Reducer to handle successful deletion of subjects
         deleteSubjectsSuccess: (state) => {
-            state.subjectsList = []; // Immediately clear all subjects
+            // Clear the subjects list after successful deletion
+            state.subjectsList = [];
+
+            // Set loading to false as the operation has finished
             state.loading = false;
+
+            // Clear any existing error messages
             state.error = null;
+
+            // Set a flag indicating that the response was successful (can be used to trigger UI updates)
             state.response = true;
         },
+
+        // Reducer to manually set the response flag
         setResponse: (state, action) => {
+            // Update the response state with the value provided in the action payload
             state.response = action.payload;
         },
-        
     },
 });
 

@@ -91,79 +91,100 @@ const getSubjectDetail = async (req, res) => {
 
 const deleteSubject = async (req, res) => {
     try {
+        // Delete a single subject by ID
         const deletedSubject = await Subject.findByIdAndDelete(req.params.id);
 
-        // Set the teachSubject field to null in teachers
+        // Remove the reference to this subject from any teacher's teachSubject field
         await Teacher.updateOne(
             { teachSubject: deletedSubject._id },
-            { $unset: { teachSubject: "" }, $unset: { teachSubject: null } }
+            { $unset: { teachSubject: "" } }
         );
 
-        // Remove the objects containing the deleted subject from students' examResult array
+        // Remove any examResult entries in students that refer to the deleted subject
         await Student.updateMany(
             {},
             { $pull: { examResult: { subName: deletedSubject._id } } }
         );
 
-        // Remove the objects containing the deleted subject from students' attendance array
+        // Remove any attendance entries in students that refer to the deleted subject
         await Student.updateMany(
             {},
             { $pull: { attendance: { subName: deletedSubject._id } } }
         );
 
+        // Return the deleted subject as a response
         res.send(deletedSubject);
     } catch (error) {
+        // Return a server error response if something goes wrong
         res.status(500).json(error);
     }
 };
 
 const deleteSubjects = async (req, res) => {
     try {
+        // Delete all subjects belonging to the specified college
         const deletionResult = await Subject.deleteMany({ college: req.params.id });
 
         const deletedCount = deletionResult.deletedCount || 0;
 
+        // If no subjects were found for deletion, return an appropriate message
         if (deletedCount === 0) {
             res.send({ message: "No Subjects found to delete" });
             return;
         }
 
+        // Fetch the subjects that were previously in the college (should return empty but precautionary)
         const deletedSubjects = await Subject.find({ college: req.params.id });
 
-        // 5. Unset teachSubject in Teacher documents if it matches deleted subjects
+        // Remove subject references from teachers if they matched any of the deleted subjects
         await Teacher.updateMany(
-            { subject: { $in: deletedSubjects.map(subject => subject._id) }, subject: { $exists: true }  },
-            { $unset: { subject: "" }, $unset: { subject: null } }
+            {
+                subject: { $in: deletedSubjects.map(subject => subject._id) },
+                subject: { $exists: true }
+            },
+            { $unset: { subject: "" } }
         );
 
+        // Send the result of the deletion operation
         res.send(deletionResult);
     } catch (error) {
+        // Return a server error response if something goes wrong
         res.status(500).json(error);
     }
 };
 
 const deleteSubjectsByClass = async (req, res) => {
     try {
+        // Find all subjects that belong to the specified class
         const subjectsToDelete = await Subject.find({ sclassName: req.params.id });
         const subjectIds = subjectsToDelete.map(subject => subject._id);
 
+        // Delete all subjects associated with that class
         const deleteResult = await Subject.deleteMany({ sclassName: req.params.id });
 
+        // Remove any matching teachSubject references from teachers
         await Teacher.updateMany(
             { teachSubject: { $in: subjectIds } },
             { $unset: { teachSubject: "" } }
         );
 
+        // Remove exam results and attendance records referring to the deleted subjects from all students
         await Student.updateMany(
             {},
-            { $pull: { examResult: { subName: { $in: subjectIds } }, attendance: { subName: { $in: subjectIds } } } }
+            {
+                $pull: {
+                    examResult: { subName: { $in: subjectIds } },
+                    attendance: { subName: { $in: subjectIds } }
+                }
+            }
         );
 
+        // Send the result of the deletion operation
         res.send(deleteResult);
     } catch (error) {
+        // Return a server error response if something goes wrong
         res.status(500).json(error);
     }
 };
-
 
 module.exports = { subjectCreate, freeSubjectList, classSubjects, getSubjectDetail, deleteSubjectsByClass, deleteSubjects, deleteSubject, allSubjects };

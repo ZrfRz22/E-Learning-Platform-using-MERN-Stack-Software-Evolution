@@ -71,30 +71,40 @@ const getSclassStudents = async (req, res) => {
     }
 }
 
+// Controller function to get all teachers assigned to a specific class (sclass)
 const getSclassTeachers = async (req, res) => {
     try {
+        // Find teachers whose 'teachSclass' matches the requested class ID
+        // Also populate related subject and class fields for each teacher
         const teachers = await Teacher.find({ teachSclass: req.params.id })
-            .populate('teachSubject', 'subName subCode')
-            .populate('teachSclass', 'sclassName'); 
+            .populate('teachSubject', 'subName subCode')   // Populate subject info (name and code)
+            .populate('teachSclass', 'sclassName');        // Populate class info (name)
 
+        // If teachers are found
         if (teachers.length > 0) {
+            // Sanitize and format teacher data for client response
             const sanitizedTeachers = teachers.map(teacher => ({
                 _id: teacher._id,
                 name: teacher.name,
                 email: teacher.email,
 
-                // To retrieve the profile picture of all teachers to be displayed
-                profilePic: teacher.profilePic, 
+                // Include profile picture for UI display
+                profilePic: teacher.profilePic,
+
+                // Extract subject and class names; default to fallback if not assigned
                 subject: teacher.teachSubject?.subName || 'Not assigned',
                 subjectCode: teacher.teachSubject?.subCode || '',
                 sclass: teacher.teachSclass?.sclassName || '',
             }));
 
+            // Send sanitized teacher data as JSON
             res.json(sanitizedTeachers);
         } else {
+            // Return empty array if no teachers found
             res.json([]);
         }
     } catch (err) {
+        // Log and return error response
         console.error("Error fetching teachers:", err);
         res.status(500).json({ error: err.message });
     }

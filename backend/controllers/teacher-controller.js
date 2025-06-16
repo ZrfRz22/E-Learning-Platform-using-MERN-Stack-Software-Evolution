@@ -319,29 +319,35 @@ const teacherAttendance = async (req, res) => {
     }
 };
 
+// Controller function to retrieve all teachers assigned to a specific class (sclass)
 const getTeachersByClass = async (req, res) => {
     try {
-    const teachers = await Teacher.find({ teachSclass: req.params.id })
-        .populate("teachSubject", "subName")
-        .populate("teachSclass", "sclassName");
+        // Query the database for teachers whose 'teachSclass' matches the requested class ID
+        // Also populate the related subject and class name fields
+        const teachers = await Teacher.find({ teachSclass: req.params.id })
+            .populate("teachSubject", "subName")       // Populate only the 'subName' from the teachSubject reference
+            .populate("teachSclass", "sclassName");    // Populate only the 'sclassName' from the teachSclass reference
 
-    if (!teachers || teachers.length === 0) {
-        return res.status(404).json({ message: "No teachers found for this class" });
-    }
+        // If no teachers are found, respond with a 404 status and message
+        if (!teachers || teachers.length === 0) {
+            return res.status(404).json({ message: "No teachers found for this class" });
+        }
 
-    const modifiedTeachers = teachers.map((teacher) => {
-        const t = teacher.toObject();
-        delete t.password;
-        return t;
-    });
+        // Convert each teacher document to a plain JS object and remove sensitive information
+        const modifiedTeachers = teachers.map((teacher) => {
+            const t = teacher.toObject();  // Convert Mongoose document to plain object
+            delete t.password;             // Remove password field for security
+            return t;                      // Return the sanitized object
+        });
 
-    res.status(200).json(modifiedTeachers);
+        // Send the sanitized list of teachers with a 200 OK status
+        res.status(200).json(modifiedTeachers);
     } catch (err) {
+        // Log the error and return a 500 Internal Server Error response
         console.error("Error in getTeachersByClass:", err);
         res.status(500).json({ message: "Internal server error" });
     }
 };
-
 
 module.exports = {
   teacherRegister,

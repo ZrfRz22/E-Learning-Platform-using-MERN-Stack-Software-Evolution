@@ -14,7 +14,7 @@ import {
     getClassTeachers
 } from "../../../redux/sclassRelated/sclassHandle";
 
-// MUI Components
+// MUI Components for UI layout and design
 import {
     Avatar, Box, Typography, IconButton, Container, Tab, Paper, Grid, Divider
 } from '@mui/material';
@@ -22,75 +22,74 @@ import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 
-// Custom styled buttons
+// Custom styled buttons for consistent styling
 import { BlueButton, GreenButton, PurpleButton } from "../../../components/buttonStyles";
 
-// Reusable components
+// Reusable components for tables and speed dial actions
 import TableTemplate from "../../../components/TableTemplate";
 import SpeedDialTemplate from "../../../components/SpeedDialTemplate";
 import Popup from "../../../components/Popup";
 
-// Icons
+// Icons for various actions
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import DeleteIcon from "@mui/icons-material/Delete";
 import PostAddIcon from '@mui/icons-material/PostAdd';
 
-// Styled-components
+// Styled-components for custom styling
 import styled from 'styled-components';
 
-// Container for student action buttons
-const ButtonContainer = styled.div`
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
-
 const ClassDetails = () => {
-    // Getting class ID from the URL params
+    // Getting class ID from URL parameters
     const params = useParams();
     const classID = params.id;
 
-    // React Router and Redux setup
+    // Navigation and Redux dispatch hooks
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    // Destructure values from Redux store related to class details
+    // Extracting state from Redux store
     const {
-        teachersList,
-        subjectsList,
-        sclassStudents,
-        sclassDetails,
-        loading,
-        error,
-        response,
-        getresponse
+        teachersList,     // List of teachers in this class
+        subjectsList,     // List of subjects taught in this class
+        sclassStudents,   // List of students enrolled in this class
+        sclassDetails,    // Details about the class (name, section, etc.)
+        loading,         // Loading state indicator
+        error,           // Error message if any operation fails
+        response,       // Response from API calls
+        getresponse     // Additional response data
     } = useSelector((state) => state.sclass);
 
-    // State for managing tabs and popup messages
+    // State for tab management (defaults to first tab - Subjects)
     const [value, setValue] = useState('1');
+
+    // State for popup feedback messages
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
 
-    // Function to refresh all class-related data
+    // Callback function to refresh all class-related data
     const refreshData = useCallback(() => {
+        // Fetch class details
         dispatch(getClassDetails(classID, "Sclass"));
+        // Fetch subjects for this class
         dispatch(getSubjectList(classID, "ClassSubjects"));
+        // Fetch students in this class
         dispatch(getClassStudents(classID));
+        // Fetch teachers assigned to this class
         dispatch(getClassTeachers(classID));
     }, [dispatch, classID]);
 
-    // Load data on component mount
+    // Effect to load data when component mounts or classID changes
     useEffect(() => {
         refreshData();
     }, [refreshData]);
 
-    // Handle tab change
+    // Handler for tab changes
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
 
-    // Handlers for deleting individual and all subjects
+    // Handler to delete a specific subject
     const deleteSubjectHandler = (deleteID) => {
         dispatch(deleteSubject(deleteID, classID))
             .then(() => {
@@ -105,6 +104,7 @@ const ClassDetails = () => {
             });
     };
 
+    // Handler to delete all subjects in the class
     const deleteAllSubjectsHandler = () => {
         dispatch(deleteSubjectsByClass(classID, "SubjectsClass"))
             .then(() => {
@@ -119,7 +119,7 @@ const ClassDetails = () => {
             });
     };
 
-    // Handlers for deleting teachers and students
+    // Handler to delete a teacher from the class
     const deleteTeacherHandler = (deleteID) => {
         dispatch(deleteUser(deleteID, "Teacher"))
             .then(() => {
@@ -134,6 +134,7 @@ const ClassDetails = () => {
             });
     };
 
+    // Handler to delete a student from the class
     const deleteStudentHandler = (deleteID) => {
         dispatch(deleteUser(deleteID, "Student"))
             .then(() => {
@@ -148,6 +149,7 @@ const ClassDetails = () => {
             });
     };
 
+    // Handler to delete all students from the class
     const deleteAllStudentsHandler = () => {
         dispatch(deleteUser(classID, "StudentsClass"))
             .then(() => {
@@ -162,7 +164,7 @@ const ClassDetails = () => {
             });
     };
 
-    // Column definitions for subjects, students, and teachers
+    // Column and row configurations for the Subjects table
     const subjectColumns = [
         { id: 'name', label: 'Subject Name', minWidth: 170 },
         { id: 'code', label: 'Subject Code', minWidth: 100 },
@@ -173,6 +175,7 @@ const ClassDetails = () => {
         id: subject._id,
     }));
 
+    // Column and row configurations for the Students table
     const studentColumns = [
         { id: 'name', label: 'Name', minWidth: 170 },
         { id: 'rollNum', label: 'Roll Number', minWidth: 100 },
@@ -188,6 +191,7 @@ const ClassDetails = () => {
         id: student._id,
     }));
 
+    // Column and row configurations for the Teachers table
     const teacherColumns = [
         { id: 'name', label: 'Name', minWidth: 170 },
         { id: 'email', label: 'Email', minWidth: 200 },
@@ -205,7 +209,7 @@ const ClassDetails = () => {
         id: teacher._id,
     }));
 
-    // Action buttons for each row in the tables
+    // Component for subject row actions (delete and view)
     const SubjectsButtonHaver = ({ row }) => (
         <>
             <IconButton onClick={() => deleteSubjectHandler(row.id)}><DeleteIcon color="error" /></IconButton>
@@ -213,6 +217,7 @@ const ClassDetails = () => {
         </>
     );
 
+    // Component for student row actions (delete, view, attendance, marks)
     const StudentsButtonHaver = ({ row }) => (
         <ButtonContainer>
             <IconButton onClick={() => deleteStudentHandler(row.id)}><PersonRemoveIcon color="error" /></IconButton>
@@ -222,6 +227,7 @@ const ClassDetails = () => {
         </ButtonContainer>
     );
 
+    // Component for teacher row actions (delete and view)
     const TeachersButtonHaver = ({ row }) => (
         <>
             <IconButton onClick={() => deleteTeacherHandler(row.id)}><PersonRemoveIcon color="error" /></IconButton>
@@ -229,21 +235,25 @@ const ClassDetails = () => {
         </>
     );
 
-    // Floating action buttons (SpeedDial) for adding/deleting entries
+    // Speed dial actions for subjects (add new, delete all)
     const subjectActions = [
         { icon: <PostAddIcon color="primary" />, name: 'Add New Subject', action: () => navigate("/Admin/addsubject/" + classID) },
         { icon: <DeleteIcon color="error" />, name: 'Delete All Subjects', action: deleteAllSubjectsHandler }
     ];
+
+    // Speed dial actions for students (add new, delete all)
     const studentActions = [
         { icon: <PersonAddAlt1Icon color="primary" />, name: 'Add New Student', action: () => navigate("/Admin/class/addstudents/" + classID) },
         { icon: <PersonRemoveIcon color="error" />, name: 'Delete All Students', action: deleteAllStudentsHandler }
     ];
+
+    // Speed dial actions for teachers (add new, remove all)
     const teacherActions = [
         { icon: <PersonAddAlt1Icon color="primary" />, name: 'Add New Teacher', action: () => navigate(`/Admin/teachers/choosesubject/${classID}`) },
         { icon: <PersonRemoveIcon color="error" />, name: 'Remove All Teachers', action: () => teachersList.forEach(teacher => deleteTeacherHandler(teacher._id)) }
     ];
 
-    // Section components to display table data for each tab
+    // Subjects tab content component
     const ClassSubjectsSection = () => (
         <>
             {response ? (
@@ -262,6 +272,7 @@ const ClassDetails = () => {
         </>
     );
 
+    // Students tab content component
     const ClassStudentsSection = () => (
         <>
             {getresponse ? (
@@ -280,6 +291,7 @@ const ClassDetails = () => {
         </>
     );
 
+    // Teachers tab content component
     const ClassTeachersSection = () => (
         <>
             {teachersList?.length > 0 ? (
@@ -298,10 +310,47 @@ const ClassDetails = () => {
         </>
     );
 
-    // Main return with tab navigation
+    // Main component render with tab interface
     return (
         <Container>
-            <Typography variant="h4" gutterBottom>Class Details</Typography>
+            {/* Class Header */}
+            <Typography variant="h4" marginTop="20px" gutterBottom>Class Details</Typography>
+            <StyledPaper elevation={3}>
+                <Grid container spacing={2} alignItems="center">
+                    <Grid item xs>
+                        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+                            {sclassDetails?.sclassName}
+                        </Typography>
+                    </Grid>
+                    <Grid item>
+                        <Grid container spacing={4} alignItems="center">
+                            {/* Number of subjects info */}
+                            <Grid item>
+                                <StatBox>
+                                    <Typography variant="h5">{(subjectsList || []).length}</Typography>
+                                    <Typography color="textSecondary">Subjects</Typography>
+                                </StatBox>
+                            </Grid>
+
+                            {/* Number of students info */}
+                            <Grid item>
+                                <StatBox>
+                                    <Typography variant="h5">{(sclassStudents || []).length}</Typography>
+                                    <Typography color="textSecondary">Students</Typography>
+                                </StatBox>
+                            </Grid>
+
+                            {/* Number of teachers info */}
+                            <Grid item>
+                                <StatBox>
+                                    <Typography variant="h5">{(teachersList || []).length}</Typography>
+                                    <Typography color="textSecondary">Teachers</Typography>
+                                </StatBox>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </StyledPaper>
             <TabContext value={value}>
                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                     <TabList onChange={handleChange}>
@@ -320,3 +369,21 @@ const ClassDetails = () => {
 };
 
 export default ClassDetails;
+
+// Styled component 
+const ButtonContainer = styled.div`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+const StyledPaper = styled(Paper)`
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+`;
+
+const StatBox = styled(Box)`
+  text-align: center;
+  padding: 0 16px;
+`;

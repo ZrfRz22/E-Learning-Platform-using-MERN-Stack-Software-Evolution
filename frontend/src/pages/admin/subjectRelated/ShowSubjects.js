@@ -15,70 +15,79 @@ import styled from 'styled-components';
 
 // Main component for displaying the list of subjects
 const ShowSubjects = () => {
-    const navigate = useNavigate(); // Navigation hook
-    const dispatch = useDispatch(); // Redux dispatch function
+    const navigate = useNavigate(); // Hook for programmatic navigation
+    const dispatch = useDispatch(); // Redux dispatch to trigger actions
 
-    // Get state from Redux
+    // Extracting necessary state from Redux store
     const { subjectsList, loading, error, response } = useSelector((state) => state.sclass);
-    const { currentUser } = useSelector(state => state.user);
+    const { currentUser } = useSelector(state => state.user); // Current logged-in user
 
-    // Fetch subject list when component mounts or currentUser changes
+    // Fetch the list of subjects from the server when component mounts or when currentUser changes
     useEffect(() => {
         dispatch(getSubjectList(currentUser._id, "AllSubjects"));
     }, [currentUser._id, dispatch]);
 
-    // Handle errors (optional logging)
+    // Optional logging of errors for debugging
     if (error) {
         console.log(error);
     }
 
-    // Local state for popup message
+    // State variables to control popup message visibility and content
     const [showPopup, setShowPopup] = useState(false);
     const [message, setMessage] = useState("");
-
-    // Handler to delete either a single subject or all subjects
+    
     const deleteHandler = (deleteID, type = "Subject") => {
         const deleteAction = type === "Subjects" ? deleteSubjects : deleteSubject;
 
         dispatch(deleteAction(deleteID))
             .then(() => {
-                dispatch(getSubjectList(currentUser._id, "AllSubjects")); // Refresh list after delete
+                // Refresh the subject list after successful deletion
+                dispatch(getSubjectList(currentUser._id, "AllSubjects"));
             })
             .catch((err) => {
+                // Handle deletion failure
                 console.error("Delete failed:", err);
                 setMessage("Failed to delete subject(s). Please try again.");
                 setShowPopup(true);
             });
     };
 
-    // Transform the subject list into a simpler format
+    // Transform the raw subject list into a simplified object array for UI use
     const subjectRows = (subjectsList || []).map((subject) => {
         return {
-            subName: subject.subName,
-            sessions: subject.sessions,
-            sclassName: subject.sclassName.sclassName,
-            sclassID: subject.sclassName._id,
-            id: subject._id,
+            subName: subject.subName,                           // Subject name
+            sessions: subject.sessions,                         // Number of sessions
+            sclassName: subject.sclassName.sclassName,          // Class name
+            sclassID: subject.sclassName._id,                   // Class ID
+            id: subject._id                                      // Subject ID
         };
     });
 
-    // Group subjects by class name
+    // Group the subjects by class name to structure them for grouped rendering
     const groupedSubjects = subjectRows.reduce((acc, subject) => {
         const className = subject.sclassName;
+
+        // If the class group doesn't exist yet, initialize it
         if (!acc[className]) {
             acc[className] = [];
         }
+
+        // Add subject to its corresponding class group
         acc[className].push(subject);
         return acc;
     }, {});
 
-    // Component for buttons in each subject row
+    // Reusable component to render buttons for each subject row.
+    // Includes "Delete" and "View" buttons.
     const SubjectsButtonHaver = ({ row }) => {
         return (
             <ButtonContainer>
+                {/* Delete icon triggers subject deletion */}
                 <IconButton onClick={() => deleteHandler(row.id, "Subject")}>
                     <DeleteIcon color="error" />
                 </IconButton>
+
+                {/* View button navigates to detailed subject view */}
                 <BlueButton
                     variant="contained"
                     onClick={() => navigate(`/Admin/subjects/subject/${row.sclassID}/${row.id}`)}
@@ -89,7 +98,6 @@ const ShowSubjects = () => {
         );
     };
 
-    // Speed dial floating button actions
     const actions = [
         {
             icon: <PostAddIcon color="primary" />,

@@ -7,9 +7,11 @@ import { underControl } from '../../../redux/userRelated/userSlice';
 import { Box, Button, CircularProgress, Container, TextField, Typography } from '@mui/material';
 import Popup from '../../../components/Popup';
 
+// Utility function to validate strong passwords
 const isStrongPassword = (password) => {
-  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-  return strongPasswordRegex.test(password);
+    // Regex: At least 1 lowercase, 1 uppercase, 1 digit, 1 special character, min length 8
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    return strongPasswordRegex.test(password);
 };
 
 const AddTeacher = () => {

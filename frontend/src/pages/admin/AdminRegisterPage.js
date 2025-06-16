@@ -41,6 +41,17 @@ const AdminRegisterPage = () => {
         event.preventDefault(); // Prevent default form submission
         setLoader(true); // Show loading spinner during async operation
 
+        const password = event.target.password.value;
+
+        // Password strength validation before submitting
+        if (!isStrongPassword(password)) {
+            setPasswordError(true);
+            setMessage("Password must be at least 8 characters long and include: uppercase letter, lowercase letter, number, and special character");
+            setShowPopup(true);
+            setLoader(false);
+            return; // Stop submission if password is weak
+        }
+
         try {
             //  Initialize FormData for multipart/form-data submission 
             const formData = new FormData();
@@ -49,7 +60,7 @@ const AdminRegisterPage = () => {
             formData.append("name", event.target.adminName.value);
             formData.append("collegeName", event.target.collegeName.value);
             formData.append("email", event.target.email.value);
-            formData.append("password", event.target.password.value);
+            formData.append("password", password);
             formData.append("role", role); // role can be 'admin', 'student', or 'teacher'
 
             //  Append Profile Picture if Provided 

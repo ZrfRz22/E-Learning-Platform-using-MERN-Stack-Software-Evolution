@@ -7,55 +7,61 @@ import { underControl } from '../../../redux/userRelated/userSlice';
 import { getAllSclasses } from '../../../redux/sclassRelated/sclassHandle';
 import { Container, Typography, TextField, Button, CircularProgress, FormControl, InputLabel, Select, MenuItem, Box } from '@mui/material';
 
+// Utility function to validate strong passwords
 const isStrongPassword = (password) => {
+    // Regex: At least 1 lowercase, 1 uppercase, 1 digit, 1 special character, min length 8
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     return strongPasswordRegex.test(password);
 };
 
 const AddStudent = ({ situation }) => {
+    // Redux hooks to dispatch actions and get current URL parameters
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const params = useParams();
 
-    // Extract necessary user and sclass data from the Redux store
+    // Extracting data from Redux store (user info and class list)
     const userState = useSelector(state => state.user);
     const { status, currentUser, response, error } = userState;
     const { sclassesList } = useSelector((state) => state.sclass);
 
-    // Form field states
+    // Form field state variables for student registration
     const [name, setName] = useState('');
     const [rollNum, setRollNum] = useState('');
     const [password, setPassword] = useState('');
     const [sclassName, setSclassName] = useState('');
-    const [profilePic, setProfilePic] = useState(null); // Store the selected profile picture file
+    const [profilePic, setProfilePic] = useState(null); // File input for profile picture
 
-    // Fixed values for admin ID and user role
-    const adminID = currentUser._id;
-    const role = "Student";
+    // Fixed metadata for the new user being registered
+    const adminID = currentUser._id;  // Creator/Admin ID
+    const role = "Student";           // Role assigned to the new user
 
-    // UI state for loading and popup messages
-    const [showPopup, setShowPopup] = useState(false);
-    const [message, setMessage] = useState("");
-    const [loader, setLoader] = useState(false);
+    // UI feedback states
+    const [showPopup, setShowPopup] = useState(false); // Controls visibility of popup messages
+    const [message, setMessage] = useState("");        // Message to show in popup
+    const [loader, setLoader] = useState(false);       // Controls loading state (e.g., spinner)
 
-    // If accessed from the "Class" route, auto-fill the class ID from params
+    // If accessed from a class context, prefill the class ID from URL params
     useEffect(() => {
         if (situation === "Class") {
             setSclassName(params.id);
         }
     }, [params.id, situation]);
 
-    // Fetch the list of classes for dropdown selection
+    // Fetch the list of available classes to populate the dropdown
     useEffect(() => {
         dispatch(getAllSclasses(adminID, "Sclass"));
     }, [adminID, dispatch]);
 
-    // Update selected class when user selects from dropdown
+    // Handle change event on class selection dropdown
     const changeHandler = (event) => {
         const selectedValue = event.target.value;
+
+        // Find and set the selected class by matching ID
         const selectedClass = sclassesList.find(
             (classItem) => classItem._id === selectedValue
         );
+
         if (selectedClass) {
             setSclassName(selectedClass._id);
         } else {
@@ -63,11 +69,11 @@ const AddStudent = ({ situation }) => {
         }
     };
 
-    // Handles the form submission logic
+    // Handle the form submission
     const submitHandler = (event) => {
         event.preventDefault();
 
-        // Validate required fields
+        // Input validation
         if (sclassName === "") {
             setMessage("Please select a class");
             setShowPopup(true);
@@ -79,9 +85,9 @@ const AddStudent = ({ situation }) => {
             return;
         }
 
-        setLoader(true);
+        setLoader(true); // Show loader while dispatching request
 
-        // Build form data for student registration
+        // Construct FormData object to send to backend (supports file upload)
         const formData = new FormData();
         formData.append('name', name);
         formData.append('rollNum', rollNum);
@@ -89,33 +95,31 @@ const AddStudent = ({ situation }) => {
         formData.append('sclassName', sclassName);
         formData.append('adminID', adminID);
         formData.append('role', role);
-        
-        // Include profile picture only if user has selected a file
+
+        // Append profile picture only if user has selected one
         if (profilePic) {
             formData.append('profilePic', profilePic);
         }
 
-        // Dispatch the registration action with form data and role
+        // Dispatch register action with form data and role type
         dispatch(registerUser(formData, role));
     };
 
-    // React to changes in registration status
+    // Effect to handle response after attempting registration
     useEffect(() => {
         if (status === 'added') {
-            dispatch(underControl()); // Reset status after successful registration
-            navigate(-1); // Navigate back to the previous page
+            dispatch(underControl()); // Clear status to avoid repeat triggers
+            navigate(-1);             // Navigate back to previous page after successful registration
         } else if (status === 'failed') {
-            setMessage(response); // Show specific error message from the backend
+            setMessage(response);     // Show server response if registration fails
             setShowPopup(true);
             setLoader(false);
         } else if (status === 'error') {
-            setMessage("Network Error"); // Show a generic error message
+            setMessage("Network Error"); // Handle connection errors gracefully
             setShowPopup(true);
             setLoader(false);
         }
     }, [status, navigate, error, response, dispatch]);
-
-
 
     return (
         <Container component="main" maxWidth="xs">

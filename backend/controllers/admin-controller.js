@@ -29,6 +29,10 @@ const adminRegister = async (req, res) => {
       });
     }
 
+    // Hash the password using bcrypt
+    const salt = await bcrypt.genSalt(10);
+    const hashedPass = await bcrypt.hash(password, salt);
+
     // Check if email already exists
     const existingAdminByEmail = await Admin.findOne({ email });
     if (existingAdminByEmail) {
@@ -45,7 +49,7 @@ const adminRegister = async (req, res) => {
     const adminData = {
       email,
       collegeName,
-      password,
+      password: hashedPass,
       ...rest
     };
 
@@ -152,41 +156,5 @@ const getAdminDetail = async (req, res) => {
         res.status(500).json(err);
     }
 }
-
-// const deleteAdmin = async (req, res) => {
-//     try {
-//         const result = await Admin.findByIdAndDelete(req.params.id)
-
-//         await Sclass.deleteMany({ college: req.params.id });
-//         await Student.deleteMany({ college: req.params.id });
-//         await Teacher.deleteMany({ college: req.params.id });
-//         await Subject.deleteMany({ college: req.params.id });
-//         await Notice.deleteMany({ college: req.params.id });
-//         await Complain.deleteMany({ college: req.params.id });
-
-//         res.send(result)
-//     } catch (error) {
-//         res.status(500).json(err);
-//     }
-// }
-
-// const updateAdmin = async (req, res) => {
-//     try {
-//         if (req.body.password) {
-//             const salt = await bcrypt.genSalt(10)
-//             res.body.password = await bcrypt.hash(res.body.password, salt)
-//         }
-//         let result = await Admin.findByIdAndUpdate(req.params.id,
-//             { $set: req.body },
-//             { new: true })
-
-//         result.password = undefined;
-//         res.send(result)
-//     } catch (error) {
-//         res.status(500).json(err);
-//     }
-// }
-
-// module.exports = { adminRegister, adminLogIn, getAdminDetail, deleteAdmin, updateAdmin };
 
 module.exports = { adminRegister, adminLogIn, getAdminDetail, updateAdminProfilePic };
