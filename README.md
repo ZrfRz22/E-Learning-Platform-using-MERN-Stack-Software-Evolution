@@ -87,6 +87,37 @@ npm test
 ![image](https://github.com/user-attachments/assets/eb22425c-a36a-41da-bbb5-3ac149f76c71)
 ![image](https://github.com/user-attachments/assets/d8bdf825-758f-4337-91ca-7b78a3de2141)
 
+## User Accounts and Credentials
+
+**College:**
+Computer Science University
+
+**Admin:**
+Email: `johnsmith@example.com`
+Password: `JohnSmithPassword123!`
+
+**Teachers:**
+1. Aiden Clark — Email: `aidenclark@gmail.com` — Password: `AidenClarkPassword123!`
+2. Sofia Martinez — Email: `sofiamartinez@gmail.com` — Password: `SofiaMartinezPassword123!`
+3. Noah Patel — Email: `noahpatel@gmail.com` — Password: `NoahPatelPassword123!`
+4. Lily Nakamura — Email: `lilynakamura@gmail.com` — Password: `LilyNakamuraPassword123!`
+5. Ethan Chen — Email: `ethanchen@gmail.com` — Password: `EthanChenPassword123!`
+6. Maya Johnson — Email: `mayajohnson@gmail.com` — Password: `MayaJohnsonPassword123!`
+7. Lucas Kim — Email: `lucaskim@gmail.com` — Password: `LucasKimPassword123!`
+8. Aria Singh — Email: `ariasingh@gmail.com` — Password: `AriaSinghPassword123!`
+9. Omar Hassan — Email: `omarhassan@gmail.com` — Password: `OmarHassanPassword123!`
+
+**Students:**
+1. Chloe Tan — Roll Number: `1` — Password: `ChloeTanPassword123!`
+2. Daniel Müller — Roll Number: `2` — Password: `DanielMüllerPassword123!`
+3. Isabelle Dubois — Roll Number: `3` — Password: `IsabelleDuboisPassword123!`
+4. Jasper Lee — Roll Number: `4` — Password: `JasperLeePassword123!`
+5. Hana Yamamoto — Roll Number: `5` — Password: `HanaYamamotoPassword123!`
+6. Leo Nguyen — Roll Number: `6` — Password: `LeoNguyenPassword123!`
+7. Nina Kowalski — Roll Number: `7` — Password: `NinaKowalskiPassword123!`
+8. Ravi Mehta — Roll Number: `8` — Password: `RaviMehtaPassword123!`
+9. Freya Sørensen — Roll Number: `9` — Password: `FreyaSørensenPassword123!`
+
 ## Contributing
 Contributions are welcome! Please follow the steps below:
 1. Fork the repository.
