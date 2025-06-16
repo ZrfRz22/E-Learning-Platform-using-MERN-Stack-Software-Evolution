@@ -5,21 +5,24 @@ This project is an e-learning platform designed to facilitate online education m
 
 ## Features
 ### Admin
-- Create and manage classes and courses.
+- Manage classes and subjects.
 - Manage teacher and student profiles.
-- Record and track attendance.
+- Record and track marks and attendance.
 - Publish notices and announcements.
+- View student-submitted complaints.
 
 ### Teacher
-- Manage student attendance and grades.
-- Upload course materials and quizzes.
-- Communicate updates and notices to students.
+- Manage student attendance.
+- Manage student marks.
+- View assigned subject details.
+- View assigned students.
+- View published notices and announcements.
 
 ### Student
-- Access and download course materials.
-- Participate in quizzes and view results.
-- Track attendance and grades.
-- Raise concerns or complaints.
+- Track subject attendance.
+- Track subject marks.
+- View published notices and announcements.
+- Submit complaints to admins.
 
 ## Technology Stack
 - **Frontend:** React.js, Material-UI
@@ -37,21 +40,41 @@ This project is an e-learning platform designed to facilitate online education m
    ```bash
    cd e-learning-platform
    ```
-3. Install dependencies:
+3. Navigate to the backend directory:
+   ```bash
+   cd frontend
+   ```
+4. Install frontend dependencies:
    ```bash
    npm install
    ```
-4. Start the server:
+5. Start the frontend server:
    ```bash
    npm start
    ```
-5. Open the application in your browser at `http://localhost:3000`.
+6. Navigate back to the project directory:
+   ```bash
+   cd ..
+   ```
+7. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+8. Install backend dependencies:
+   ```bash
+   npm install
+   ```
+9. Start the backend server:
+   ```bash
+   npm start
+   ```
+10. Open the application in your browser at `http://localhost:3000`.
 
 ## Testing
 Unit and integration tests are conducted for each module:
 - Admin functionalities: User management, attendance, and notice publication.
-- Teacher functionalities: Quiz creation, material upload, and grade management.
-- Student functionalities: Quiz participation, material access, and complaint system.
+- Teacher functionalities: Attendance and grade management.
+- Student functionalities: Attendance and grade tracking, and complaint system.
 
 Run tests with:
 ```bash
@@ -59,7 +82,7 @@ npm test
 ```
 
 ## Screenshots
-Include screenshots of the platform here (e.g., dashboard, attendance page, quiz interface).
+
 
 ## Contributing
 Contributions are welcome! Please follow the steps below:
