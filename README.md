@@ -82,7 +82,10 @@ npm test
 ```
 
 ## Screenshots
-
+![image](https://github.com/user-attachments/assets/32e9f8a0-3fbd-4859-a9b3-d4c415daa404)
+![image](https://github.com/user-attachments/assets/7a5c0e81-8dbc-4ba5-9581-7dfbcc1d865b)
+![image](https://github.com/user-attachments/assets/eb22425c-a36a-41da-bbb5-3ac149f76c71)
+![image](https://github.com/user-attachments/assets/d8bdf825-758f-4337-91ca-7b78a3de2141)
 
 ## Contributing
 Contributions are welcome! Please follow the steps below:
